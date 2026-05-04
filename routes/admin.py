@@ -55,12 +55,15 @@ def dashboard():
     productos_bajo_stock = Product.query.filter(Product.cantidad_stock <= 10).count()
     maneos_activos = Maneo.query.filter_by(estado='PENDIENTE').count()
     
-    # Se filtran las ventas de los últimos 15 días para mostrar el rendimiento de la quincena actual
-    from datetime import timedelta
-    limite_quincena = obtener_hora_bogota() - timedelta(days=15)
+    # Se filtran las ventas de la quincena actual (del 1 al 15 o del 16 al fin de mes)
+    hoy = obtener_hora_bogota()
+    if hoy.day <= 15:
+        inicio_quincena = hoy.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        inicio_quincena = hoy.replace(day=16, hour=0, minute=0, second=0, microsecond=0)
     
-    total_ventas = db.session.query(func.sum(Sale.monto_total)).filter(Sale.fecha_venta >= limite_quincena).scalar() or 0.0
-    conteo_ventas = Sale.query.filter(Sale.fecha_venta >= limite_quincena).count()
+    total_ventas = db.session.query(func.sum(Sale.monto_total)).filter(Sale.fecha_venta >= inicio_quincena).scalar() or 0.0
+    conteo_ventas = Sale.query.filter(Sale.fecha_venta >= inicio_quincena).count()
 
     return render_template('admin/dashboard.html', 
                            total_productos=total_productos,
