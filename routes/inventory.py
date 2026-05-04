@@ -579,3 +579,33 @@ def importar_inventario():
         flash(f'Ocurrió un error leyendo las filas de tu archivo: {str(e)}', 'danger')
         
     return redirect(url_for('inventory_bp.index'))
+
+@inventory_bp.route('/api/search')
+@login_required
+@admin_or_bodega_required
+def api_search():
+    query = request.args.get('q', '').strip()
+    tipo = 'bodega' if current_user.rol == 'bodega' else 'tienda'
+    
+    if len(query) < 2:
+        return jsonify([])
+    
+    from sqlalchemy import or_
+    productos = Product.query.filter_by(tipo_inventario=tipo).filter(
+        or_(
+            Product.sku.ilike(f'%{query}%'),
+            Product.nombre.ilike(f'%{query}%')
+        )
+    ).limit(10).all()
+    
+    results = []
+    for p in productos:
+        results.append({
+            'id': p.id,
+            'sku': p.sku,
+            'nombre': p.nombre,
+            'stock': p.total_stock,
+            'url': url_for('inventory_bp.ver_producto', id=p.id)
+        })
+    
+    return jsonify(results)

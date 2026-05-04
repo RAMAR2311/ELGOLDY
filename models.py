@@ -228,11 +228,12 @@ class Cliente(db.Model):
 
     @property
     def total_abonado(self):
-        return sum(a.monto for a in self.abonos)
+        # Solo sumamos abonos que NO son de facturas de contado (los de contado ya se reflejan en total_contado)
+        return sum(a.monto for a in self.abonos if not (a.factura and a.factura.modalidad == 'contado'))
 
     @property
     def deuda_total(self):
-        # La deuda es el total de crédito menos lo abonado globalmente
+        # La deuda es el total de crédito menos lo abonado a crédito o a cuenta global
         return self.total_credito - self.total_abonado
 
     @property

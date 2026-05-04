@@ -59,8 +59,8 @@ def create_app():
         if value is None:
             return "0"
         try:
-            # Formateo a moneda colombiana (sin decimales, separador de miles con punto)
-            return "{:,.0f}".format(float(value)).replace(',', '.')
+            # Formateo a moneda colombiana (separador de miles con coma, como pidió el usuario)
+            return "{:,.0f}".format(float(value))
         except (ValueError, TypeError):
             return value
 

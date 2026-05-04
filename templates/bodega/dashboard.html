@@ -5,17 +5,41 @@
     <h2 class="fw-bold text-brand-black m-0"><i class="fa-solid fa-boxes-stacked text-brand-blue me-2"></i> Área de Bodega</h2>
 </div>
 
+<!-- Buscador Rápido de Facturas -->
+<div class="card card-custom p-3 mb-4 border-0 shadow-sm bg-white">
+    <div class="row align-items-center">
+        <div class="col-md-8 col-lg-6 position-relative">
+            <div class="input-group input-group-lg shadow-sm rounded-pill border">
+                <span class="input-group-text bg-white border-0 ps-4"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                <input type="text" id="facturasSearch" class="form-control border-0 bg-white shadow-none ps-2" placeholder="Busca Factura por número (#)..." autocomplete="off" style="border-radius: 0 50px 50px 0;">
+                <button class="btn btn-light border-0 px-3 text-muted" type="button" id="clearSearch" title="Limpiar búsqueda" style="border-radius: 0 50px 50px 0;">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <!-- Contenedor para resultados desplegables -->
+            <div id="searchDropdown" class="dropdown-menu shadow-lg border-0 w-100 p-0 mt-2 d-none" style="max-height: 400px; overflow-y: auto;">
+            </div>
+        </div>
+        <div class="col-md-4 col-lg-6 text-md-end mt-3 mt-md-0">
+            <small class="text-muted fw-bold text-uppercase" style="font-size: 0.75rem;">
+                Consulta rápida de documentos registrados
+            </small>
+        </div>
+    </div>
+</div>
+
 <div class="row g-4 mb-4">
+    <!-- ... resto del contenido ... -->
     <div class="col-md-6 col-lg-4">
-        <div class="card card-custom h-100 border-0 p-4 text-center">
+        <div class="card card-custom h-100 border-0 p-4 text-center shadow-sm">
             <h5 class="text-muted fw-bold">{% if current_user.rol == 'vendedor_bodega' %}Mis Clientes{% else %}Total Clientes{% endif %}</h5>
             <h1 class="display-4 fw-bolder text-brand-black" style="color: var(--brand-blue) !important;">{{ clientes_count }}</h1>
-            <a href="{{ url_for('bodega_bp.nuevo_cliente') }}" class="btn btn-blue rounded-pill mt-3"><i class="fa-solid fa-plus me-1"></i> Nuevo Cliente</a>
+            <a href="{{ url_for('bodega_bp.nuevo_cliente') }}" class="btn btn-blue rounded-pill mt-3 shadow-sm"><i class="fa-solid fa-plus me-1"></i> Nuevo Cliente</a>
         </div>
     </div>
     
     <div class="col-md-6 col-lg-8">
-        <div class="card card-custom border-0 p-0 overflow-hidden h-100">
+        <div class="card card-custom border-0 p-0 overflow-hidden h-100 shadow-sm">
             <h5 class="fw-bold p-4 bg-light mb-0 border-bottom"><i class="fa-solid fa-file-pdf text-brand-pink me-2"></i> Últimas Facturas</h5>
             <div class="table-responsive">
                 <table class="table table-hover table-custom mb-0">
@@ -24,7 +48,7 @@
                             <th class="ps-4">TICKET/DOC</th>
                             <th>CLIENTE</th>
                             <th>FECHA</th>
-                            <th class="text-center">ARCHIVO</th>
+                            <th class="text-center">ESTADO / ARCHIVO</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -55,9 +79,84 @@
                 </table>
             </div>
             <div class="p-3 text-end bg-light border-top">
-                <a href="{{ url_for('bodega_bp.nueva_factura') }}" class="btn btn-pink rounded-pill"><i class="fa-solid fa-upload me-1"></i> Subir Documento</a>
+                <a href="{{ url_for('bodega_bp.nueva_factura') }}" class="btn btn-pink rounded-pill shadow-sm"><i class="fa-solid fa-upload me-1"></i> Subir Documento</a>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('facturasSearch');
+    const clearBtn = document.getElementById('clearSearch');
+    const dropdown = document.getElementById('searchDropdown');
+
+    let debounceTimer;
+
+    function performSearch() {
+        const query = searchInput.value.toLowerCase().trim();
+        
+        clearTimeout(debounceTimer);
+        if (query.length < 2) {
+            dropdown.classList.add('d-none');
+            dropdown.classList.remove('show');
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetch(`/bodega/facturas/api/search?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.length > 0) {
+                        dropdown.innerHTML = '';
+                        data.forEach(item => {
+                            const btn = document.createElement('a');
+                            btn.href = item.url;
+                            btn.className = 'dropdown-item p-3 border-bottom d-flex justify-content-between align-items-center';
+                            
+                            let badgeClass = 'bg-danger';
+                            if (item.estado === 'Pagado') badgeClass = 'bg-success';
+                            else if (item.estado === 'Parcial') badgeClass = 'bg-warning text-dark';
+
+                            btn.innerHTML = `
+                                <div>
+                                    <div class="fw-bold text-dark">Factura #${item.numero}</div>
+                                    <small class="text-muted">${item.cliente}</small>
+                                </div>
+                                <div class="text-end">
+                                    <span class="badge ${badgeClass} rounded-pill d-block mb-1">${item.estado}</span>
+                                    <small class="text-muted d-block" style="font-size: 0.7rem;">${item.fecha}</small>
+                                </div>
+                            `;
+                            dropdown.appendChild(btn);
+                        });
+                        dropdown.classList.remove('d-none');
+                        dropdown.classList.add('show');
+                    } else {
+                        dropdown.classList.add('d-none');
+                        dropdown.classList.remove('show');
+                    }
+                });
+        }, 300);
+    }
+
+    searchInput.addEventListener('input', performSearch);
+
+    // Ocultar dropdown al hacer click fuera
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('d-none');
+            dropdown.classList.remove('show');
+        }
+    });
+
+    clearBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        performSearch();
+        dropdown.classList.add('d-none');
+        dropdown.classList.remove('show');
+        searchInput.focus();
+    });
+});
+</script>
 {% endblock %}

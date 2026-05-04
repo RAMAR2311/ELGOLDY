@@ -38,7 +38,10 @@
     </div>
 </div>
 
-<div class="d-flex justify-content-end mb-4">
+<div class="d-flex justify-content-end gap-2 mb-4">
+    <button type="button" class="btn btn-outline-warning rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#saldoAnteriorModal">
+        <i class="fa-solid fa-clock-rotate-left me-2"></i>Registrar Saldo Anterior
+    </button>
     <button type="button" class="btn btn-blue rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#abonoGlobalModal">
         <i class="fa-solid fa-plus-circle me-2"></i>Registrar Abono a la Cuenta
     </button>
@@ -110,12 +113,14 @@
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </a>
 
+                            {% if current_user.rol != 'vendedor_bodega' %}
                             <form method="POST" action="{{ url_for('bodega_bp.eliminar_factura', id=f.id) }}" class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar esta factura? El stock será reintegrado automáticamente y los abonos se perderán.');">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill" title="Eliminar Factura">
                                     <i class="fa-solid fa-trash"></i>
                                 </button>
                             </form>
+                            {% endif %}
                         </div>
                     </td>
                 </tr>
@@ -142,6 +147,7 @@
                     <th>MÉTODO</th>
                     <th class="text-end">MONTO</th>
                     <th>OBSERVACIÓN</th>
+                    <th class="text-center">ACCIONES</th>
                 </tr>
             </thead>
             <tbody>
@@ -158,10 +164,25 @@
                     <td class="text-capitalize">{{ abono.metodo_pago }}</td>
                     <td class="text-end fw-bold text-success">${{ abono.monto|cop }}</td>
                     <td class="text-muted small">{{ abono.observacion or '-' }}</td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-warning rounded-pill" data-bs-toggle="modal" data-bs-target="#editAbonoModal{{ abono.id }}" title="Editar Abono">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            {% if current_user.rol != 'vendedor_bodega' %}
+                            <form method="POST" action="{{ url_for('bodega_bp.eliminar_abono', abono_id=abono.id) }}" class="d-inline" onsubmit="return confirm('¿Estás seguro de eliminar este abono?');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill" title="Eliminar Abono">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="5" class="text-center py-4 text-muted">No se han registrado abonos en esta cuenta aún.</td>
+                    <td colspan="6" class="text-center py-4 text-muted">No se han registrado abonos en esta cuenta aún.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -189,7 +210,7 @@
                             <label class="form-label fw-bold">Monto a Abonar</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-0">$</span>
-                                <input type="number" step="any" min="1" max="{{ f.saldo_pendiente }}" name="monto_abono" class="form-control border-0 bg-light" required placeholder="0">
+                                <input type="text" name="monto_abono" class="form-control border-0 bg-light" required placeholder="0" oninput="formatInputCOP(this)">
                             </div>
                         </div>
                         
@@ -313,7 +334,7 @@
                         <label class="form-label fw-bold">Monto a Abonar</label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-0">$</span>
-                            <input type="number" step="any" min="1" name="monto_abono" class="form-control border-0 bg-light" required placeholder="0">
+                            <input type="text" name="monto_abono" class="form-control border-0 bg-light" required placeholder="0" oninput="formatInputCOP(this)">
                         </div>
                     </div>
                     
@@ -336,6 +357,97 @@
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-blue rounded-pill fw-bold px-4">Confirmar Abono a Cuenta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modales para editar cada abono -->
+{% for abono in cliente.abonos %}
+<div class="modal fade" id="editAbonoModal{{ abono.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="{{ url_for('bodega_bp.editar_abono', abono_id=abono.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-header border-0 bg-light">
+                    <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-pen-to-square me-2"></i>Editar Abono</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Fecha del Abono</label>
+                        <input type="date" name="fecha_abono" class="form-control border-0 bg-light" value="{{ abono.fecha_abono.strftime('%Y-%m-%d') if abono.fecha_abono else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Monto del Abono</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0">$</span>
+                            <input type="text" name="monto_abono" class="form-control border-0 bg-light" value="{{ abono.monto|cop }}" required placeholder="0" oninput="formatInputCOP(this)">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Medio de Pago</label>
+                        <select name="metodo_pago" class="form-select bg-light border-0" required>
+                            <option value="efectivo" {% if abono.metodo_pago == 'efectivo' %}selected{% endif %}>💵 Efectivo Físico</option>
+                            <option value="nequi" {% if abono.metodo_pago == 'nequi' %}selected{% endif %}>📱 Nequi</option>
+                            <option value="bancolombia" {% if abono.metodo_pago == 'bancolombia' %}selected{% endif %}>🏦 Bancolombia</option>
+                            <option value="daviplata" {% if abono.metodo_pago == 'daviplata' %}selected{% endif %}>📱 Daviplata</option>
+                            <option value="transferencia" {% if abono.metodo_pago == 'transferencia' %}selected{% endif %}>🏦 Otra Transferencia</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Observación <span class="text-muted">(Opcional)</span></label>
+                        <textarea name="observacion" class="form-control border-0 bg-light" rows="2" placeholder="Referencia o nota de pago">{{ abono.observacion or '' }}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning rounded-pill fw-bold px-4">Actualizar Abono</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Modal Registrar Saldo Anterior -->
+<div class="modal fade" id="saldoAnteriorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="{{ url_for('bodega_bp.registrar_saldo_anterior', cliente_id=cliente.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="modal-header border-0 bg-light">
+                    <h5 class="modal-title fw-bold text-warning"><i class="fa-solid fa-clock-rotate-left me-2"></i>Registrar Saldo Anterior</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <p>Usa esta opción para cargar deudas de facturas viejas que no están en el sistema y no requieren descontar inventario.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Fecha del Saldo (Opcional)</label>
+                        <input type="date" name="fecha" class="form-control border-0 bg-light">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Monto del Saldo</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0">$</span>
+                            <input type="text" name="monto" class="form-control border-0 bg-light" required placeholder="0" oninput="formatInputCOP(this)">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nota / Referencia</label>
+                        <textarea name="nota" class="form-control border-0 bg-light" rows="2" placeholder="Ej: Saldo de facturas año 2023"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-light rounded-pill" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning rounded-pill fw-bold px-4">Cargar Saldo</button>
                 </div>
             </form>
         </div>

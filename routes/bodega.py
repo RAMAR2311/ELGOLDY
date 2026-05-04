@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, jsonify
 from flask_login import login_required, current_user
 from decorators import any_bodega_required
-from models import db, Cliente, FacturaBodega, AbonoBodega, Product, StockAdjustment, FacturaBodegaDetalle
+from models import db, Cliente, FacturaBodega, AbonoBodega, Product, StockAdjustment, FacturaBodegaDetalle, obtener_hora_bogota
 import os
 from decimal import Decimal
 from werkzeug.utils import secure_filename
@@ -114,7 +114,7 @@ def nueva_factura():
         cliente_id = request.form.get('cliente_id')
         num_factura = request.form.get('numero_factura')
         monto_total_raw = request.form.get('monto_total', '0')
-        monto_total = monto_total_raw.replace('.', '') if isinstance(monto_total_raw, str) else monto_total_raw
+        monto_total = monto_total_raw.replace('.', '').replace(',', '') if isinstance(monto_total_raw, str) else monto_total_raw
         fecha_factura_str = request.form.get('fecha_factura')
         
         # Arrays of products and quantities
@@ -122,7 +122,7 @@ def nueva_factura():
         variantes_ids = request.form.getlist('variant_id[]')
         cantidades = request.form.getlist('cantidad[]')
         precios_unitarios_raw = request.form.getlist('precio_unitario[]')
-        precios_unitarios = [p.replace('.', '') for p in precios_unitarios_raw]
+        precios_unitarios = [p.replace('.', '').replace(',', '') for p in precios_unitarios_raw]
         
         if not productos_ids or not cantidades or not precios_unitarios:
             flash('Debes agregar al menos un producto a la factura.', 'danger')
@@ -158,7 +158,7 @@ def nueva_factura():
                 pass
 
         modalidad_pago = request.form.get('modalidad_pago', 'credito')
-        monto_abono_inicial_str = request.form.get('monto_abono_inicial', '0').replace('.', '')
+        monto_abono_inicial_str = request.form.get('monto_abono_inicial', '0').replace('.', '').replace(',', '')
         metodo_pago_abono = request.form.get('metodo_pago_abono', 'efectivo')
         
         try:
@@ -189,7 +189,8 @@ def nueva_factura():
                 nueva_fact.estado = 'Pendiente'
 
             if fecha_obj:
-                nueva_fact.fecha_subida = fecha_obj
+                ahora = obtener_hora_bogota()
+                nueva_fact.fecha_subida = fecha_obj.replace(hour=ahora.hour, minute=ahora.minute, second=ahora.second)
                 
             db.session.add(nueva_fact)
             db.session.flush() # Para obtener el ID de nueva_fact
@@ -205,7 +206,7 @@ def nueva_factura():
                     observacion=f'Abono inicial Factura #{num_factura}'
                 )
                 if fecha_obj:
-                    abono.fecha_abono = fecha_obj
+                    abono.fecha_abono = nueva_fact.fecha_subida
                 db.session.add(abono)
                 
             # Procesar productos y descontar el stock
@@ -337,7 +338,7 @@ def cliente_detalle(id):
 @any_bodega_required
 def nuevo_abono(factura_id):
     factura = FacturaBodega.query.get_or_404(factura_id)
-    monto_abono_str = request.form.get('monto_abono', '0').replace('.', '')
+    monto_abono_str = request.form.get('monto_abono', '0').replace('.', '').replace(',', '')
     try:
         monto_abono = Decimal(monto_abono_str)
     except:
@@ -385,33 +386,227 @@ def nuevo_abono(factura_id):
 @any_bodega_required
 def abono_global(cliente_id):
     cliente = Cliente.query.get_or_404(cliente_id)
-    monto_abono_str = request.form.get('monto_abono', '0').replace('.', '')
+    monto_abono_str = request.form.get('monto_abono', '0').replace('.', '').replace(',', '')
     try:
         monto_abono = Decimal(monto_abono_str)
     except:
         monto_abono = Decimal(0)
     metodo_pago = request.form.get('metodo_pago', 'efectivo')
-    observacion = request.form.get('observacion', '')
+    observacion_base = request.form.get('observacion', '')
 
     if monto_abono <= 0:
         flash('El monto del abono debe ser mayor a cero.', 'danger')
         return redirect(url_for('bodega_bp.cliente_detalle', id=cliente_id))
 
-    abono = AbonoBodega(
-        cliente_id=cliente.id,
-        usuario_id=current_user.id,
-        monto=monto_abono,
-        metodo_pago=metodo_pago,
-        observacion=observacion
-    )
+    monto_restante = monto_abono
     
+    # 1. Buscar todas las facturas a crédito no pagadas, de la más vieja a la más nueva
+    facturas_pendientes = FacturaBodega.query.filter_by(cliente_id=cliente.id, modalidad='credito')\
+        .filter(FacturaBodega.estado != 'Pagado')\
+        .order_by(FacturaBodega.fecha_subida.asc()).all()
+
     try:
-        db.session.add(abono)
+        if not facturas_pendientes:
+            # Si no hay facturas pendientes, se registra como un abono a cuenta (saldo a favor)
+            abono = AbonoBodega(
+                cliente_id=cliente.id,
+                usuario_id=current_user.id,
+                monto=monto_abono,
+                metodo_pago=metodo_pago,
+                observacion=observacion_base or "Abono global a cuenta (Sin facturas pendientes)"
+            )
+            db.session.add(abono)
+        else:
+            # 2. Aplicar el pago en cascada
+            for f in facturas_pendientes:
+                if monto_restante <= 0:
+                    break
+                
+                deuda = f.saldo_pendiente
+                if deuda <= 0:
+                    continue
+                
+                pago_aplicado = min(monto_restante, deuda)
+                
+                obs_cascada = f"Pago cascada Fac. #{f.numero_factura}"
+                if observacion_base:
+                    obs_cascada = f"{observacion_base} | {obs_cascada}"
+
+                nuevo_abono_item = AbonoBodega(
+                    cliente_id=cliente.id,
+                    factura_id=f.id,
+                    usuario_id=current_user.id,
+                    monto=pago_aplicado,
+                    metodo_pago=metodo_pago,
+                    observacion=obs_cascada
+                )
+                db.session.add(nuevo_abono_item)
+                
+                monto_restante -= pago_aplicado
+                
+                # Actualizar estado de la factura basándonos en si la deuda se cubrió
+                if pago_aplicado >= deuda:
+                    f.estado = 'Pagado'
+                else:
+                    f.estado = 'Parcial'
+
+            # 3. Si después de recorrer todas las facturas aún queda dinero, se registra el excedente como abono a cuenta
+            if monto_restante > 0:
+                abono_excedente = AbonoBodega(
+                    cliente_id=cliente.id,
+                    usuario_id=current_user.id,
+                    monto=monto_restante,
+                    metodo_pago=metodo_pago,
+                    observacion=f"{observacion_base} (Excedente después de pagar facturas)" if observacion_base else "Excedente de pago global"
+                )
+                db.session.add(abono_excedente)
+
         db.session.commit()
-        flash(f'Abono global de ${monto_abono} registrado correctamente a la cuenta de {cliente.nombre_o_razon_social}.', 'success')
+        flash(f'Se procesó el pago global de ${monto_abono}. Las deudas se saldaron de la más antigua a la más reciente.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash('Hubo un error al registrar el abono.', 'danger')
+        flash('Hubo un error al procesar el abono en cascada.', 'danger')
+
+    return redirect(url_for('bodega_bp.cliente_detalle', id=cliente_id))
+
+@bodega_bp.route('/clientes/<int:cliente_id>/saldo_anterior', methods=['POST'])
+@login_required
+@any_bodega_required
+def registrar_saldo_anterior(cliente_id):
+    cliente = Cliente.query.get_or_404(cliente_id)
+    monto_str = request.form.get('monto', '0').replace('.', '').replace(',', '')
+    try:
+        monto = Decimal(monto_str)
+    except:
+        monto = Decimal(0)
+    
+    nota = request.form.get('nota', 'Saldo Anterior / Facturas Viejas')
+    fecha_str = request.form.get('fecha')
+
+    if monto <= 0:
+        flash('El monto debe ser mayor a cero.', 'danger')
+        return redirect(url_for('bodega_bp.cliente_detalle', id=cliente_id))
+
+    nueva_fact = FacturaBodega(
+        cliente_id=cliente.id,
+        usuario_id=current_user.id,
+        numero_factura="SALDO-ANTERIOR",
+        monto_total=monto,
+        modalidad='credito',
+        estado='Pendiente'
+    )
+    
+    if fecha_str:
+        from datetime import datetime
+        try:
+            fecha_dt = datetime.strptime(fecha_str, '%Y-%m-%d')
+            ahora = obtener_hora_bogota()
+            nueva_fact.fecha_subida = fecha_dt.replace(hour=ahora.hour, minute=ahora.minute, second=ahora.second)
+        except ValueError:
+            pass
+
+    try:
+        db.session.add(nueva_fact)
+        db.session.commit()
+        flash(f'Saldo anterior de ${monto} registrado correctamente para {cliente.nombre_o_razon_social}.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al registrar el saldo anterior.', 'danger')
+
+    return redirect(url_for('bodega_bp.cliente_detalle', id=cliente_id))
+
+@bodega_bp.route('/abonos/<int:abono_id>/editar', methods=['POST'])
+@login_required
+@any_bodega_required
+def editar_abono(abono_id):
+    abono = AbonoBodega.query.get_or_404(abono_id)
+    cliente_id = abono.cliente_id
+    
+    monto_abono_str = request.form.get('monto_abono', '0').replace('.', '').replace(',', '')
+    try:
+        monto_nuevo = Decimal(monto_abono_str)
+    except:
+        monto_nuevo = abono.monto
+
+    metodo_pago = request.form.get('metodo_pago', abono.metodo_pago)
+    observacion = request.form.get('observacion', abono.observacion)
+    fecha_str = request.form.get('fecha_abono')
+
+    if monto_nuevo <= 0:
+        flash('El monto del abono debe ser mayor a cero.', 'danger')
+        return redirect(url_for('bodega_bp.cliente_detalle', id=cliente_id))
+
+    # Si el abono está asociado a una factura, validar que el nuevo monto no exceda el límite
+    if abono.factura:
+        # El saldo pendiente real es: monto_total - (suma_otros_abonos)
+        otros_abonos = sum(a.monto for a in abono.factura.abonos if a.id != abono.id)
+        max_permitido = abono.factura.monto_total - otros_abonos
+        if monto_nuevo > max_permitido:
+            flash(f'El monto supera el saldo pendiente de la factura (${max_permitido}).', 'danger')
+            return redirect(url_for('bodega_bp.cliente_detalle', id=cliente_id))
+
+    try:
+        abono.monto = monto_nuevo
+        abono.metodo_pago = metodo_pago
+        abono.observacion = observacion
+        
+        if fecha_str:
+            from datetime import datetime
+            try:
+                nueva_fecha = datetime.strptime(fecha_str, '%Y-%m-%d')
+                # Mantener la hora si es posible
+                if abono.fecha_abono:
+                    abono.fecha_abono = abono.fecha_abono.replace(year=nueva_fecha.year, month=nueva_fecha.month, day=nueva_fecha.day)
+                else:
+                    abono.fecha_abono = nueva_fecha
+            except ValueError:
+                pass
+
+        db.session.commit()
+
+        # Re-evaluar estado de la factura si existe
+        if abono.factura:
+            if abono.factura.saldo_pendiente <= 0:
+                abono.factura.estado = 'Pagado'
+            elif abono.factura.saldo_pendiente < abono.factura.monto_total:
+                abono.factura.estado = 'Parcial'
+            else:
+                abono.factura.estado = 'Pendiente'
+            db.session.commit()
+
+        flash('Abono actualizado correctamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al actualizar el abono.', 'danger')
+
+    return redirect(url_for('bodega_bp.cliente_detalle', id=cliente_id))
+
+@bodega_bp.route('/abonos/<int:abono_id>/eliminar', methods=['POST'])
+@login_required
+@any_bodega_required
+def eliminar_abono(abono_id):
+    abono = AbonoBodega.query.get_or_404(abono_id)
+    cliente_id = abono.cliente_id
+    factura = abono.factura
+    
+    try:
+        db.session.delete(abono)
+        db.session.commit()
+        
+        # Re-evaluar estado de la factura si existe
+        if factura:
+            if factura.saldo_pendiente <= 0:
+                factura.estado = 'Pagado'
+            elif factura.saldo_pendiente < factura.monto_total:
+                factura.estado = 'Parcial'
+            else:
+                factura.estado = 'Pendiente'
+            db.session.commit()
+            
+        flash('Abono eliminado correctamente.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Error al eliminar el abono.', 'danger')
 
     return redirect(url_for('bodega_bp.cliente_detalle', id=cliente_id))
 
@@ -423,7 +618,7 @@ def editar_factura(id):
     if request.method == 'POST':
         factura.numero_factura = request.form.get('numero_factura')
         
-        monto_total_str = request.form.get('monto_total', '0').replace('.', '')
+        monto_total_str = request.form.get('monto_total', '0').replace('.', '').replace(',', '')
         try:
             factura.monto_total = Decimal(monto_total_str)
         except:
@@ -538,3 +733,77 @@ def eliminar_cliente(id):
         flash('Error al intentar eliminar el cliente.', 'danger')
 
     return redirect(url_for('bodega_bp.clientes'))
+
+@bodega_bp.route('/clientes/api/search')
+@login_required
+@any_bodega_required
+def api_search_clientes():
+    query = request.args.get('q', '').strip()
+    
+    if len(query) < 2:
+        return jsonify([])
+    
+    from sqlalchemy import or_
+    # Filtrar según el rol (vendedor solo sus clientes, bodega/admin todos)
+    if current_user.rol == 'vendedor_bodega':
+        query_base = Cliente.query.filter_by(creado_por_id=current_user.id)
+    else:
+        query_base = Cliente.query
+
+    clientes_match = query_base.filter(
+        or_(
+            Cliente.nombre_o_razon_social.ilike(f'%{query}%'),
+            Cliente.documento_o_nit.ilike(f'%{query}%')
+        )
+    ).limit(10).all()
+    
+    results = []
+    for c in clientes_match:
+        results.append({
+            'id': c.id,
+            'nombre': c.nombre_o_razon_social,
+            'documento': c.documento_o_nit,
+            'deuda': float(c.deuda_total),
+            'url': url_for('bodega_bp.cliente_detalle', id=c.id)
+        })
+    
+    return jsonify(results)
+
+@bodega_bp.route('/facturas/api/search')
+@login_required
+@any_bodega_required
+def api_search_facturas():
+    query = request.args.get('q', '').strip()
+    
+    if len(query) < 2:
+        return jsonify([])
+    
+    from sqlalchemy import or_
+    # Filtrar según el rol (vendedor solo sus facturas, bodega/admin todas)
+    if current_user.rol == 'vendedor_bodega':
+        query_base = FacturaBodega.query.filter_by(usuario_id=current_user.id)
+    else:
+        query_base = FacturaBodega.query
+
+    facturas_match = query_base.filter(
+        FacturaBodega.numero_factura.ilike(f'%{query}%')
+    ).limit(10).all()
+    
+    results = []
+    for f in facturas_match:
+        results.append({
+            'id': f.id,
+            'numero': f.numero_factura,
+            'cliente': f.cliente.nombre_o_razon_social,
+            'estado': f.estado,
+            'fecha': f.fecha_subida.strftime('%d/%m/%Y'),
+            'url': url_for('bodega_bp.cliente_detalle', id=f.cliente.id)
+        })
+    
+    return jsonify(results)
+
+@bodega_bp.route('/abonos/modulo', methods=['GET'])
+@login_required
+@any_bodega_required
+def modulo_abonos():
+    return render_template('bodega/modulo_abonos.html')
