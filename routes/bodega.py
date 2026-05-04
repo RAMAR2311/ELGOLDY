@@ -744,11 +744,8 @@ def api_search_clientes():
         return jsonify([])
     
     from sqlalchemy import or_
-    # Filtrar según el rol (vendedor solo sus clientes, bodega/admin todos)
-    if current_user.rol == 'vendedor_bodega':
-        query_base = Cliente.query.filter_by(creado_por_id=current_user.id)
-    else:
-        query_base = Cliente.query
+    # Permitir que todos los perfiles busquen a todos los clientes para facilitar abonos e informes
+    query_base = Cliente.query
 
     clientes_match = query_base.filter(
         or_(
