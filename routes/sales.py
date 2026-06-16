@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, flash, redirect, render_template, abort, url_for
 from flask_login import login_required, current_user
-from models import db, Product, ProductVariant, Sale, SaleDetail, SalePayment, Expense, obtener_hora_bogota
+from models import db, Product, ProductVariant, Sale, SaleDetail, SalePayment, SaleClient, Expense, obtener_hora_bogota
 from decorators import admin_required
 from decimal import Decimal
 from datetime import datetime, timedelta
@@ -113,6 +113,7 @@ def procesar_venta():
                     if cantidad_vendida > variante.cantidad_stock:
                         raise ValueError(f"Stock insuficiente para la variante '{variante.nombre_variante}' de '{producto.nombre}'. Solicitado: {cantidad_vendida}, Disponible: {variante.cantidad_stock}.")
                     variante.cantidad_stock -= cantidad_vendida
+                    producto.cantidad_stock -= cantidad_vendida # Sincronizar producto base
                     precio_limite_autorizado = variante.precio_costo if current_user.rol == 'admin' else variante.precio_minimo
                 else:
                     if cantidad_vendida > producto.cantidad_stock:
@@ -163,6 +164,17 @@ def procesar_venta():
         if total_pagos != monto_total:
             raise ValueError(f"La suma de los pagos (${total_pagos}) no coincide con el total de la venta (${monto_total}). Diferencia: ${monto_total - total_pagos}.")
 
+        # Guardar datos del cliente si se vendió un celular
+        cliente_data = data.get('cliente')
+        if cliente_data and isinstance(cliente_data, dict):
+            cliente = SaleClient(
+                sale_id=nueva_venta.id,
+                nombre=cliente_data.get('nombre', 'Desconocido').strip(),
+                documento=cliente_data.get('documento', '0').strip(),
+                telefono=cliente_data.get('telefono', '').strip()
+            )
+            db.session.add(cliente)
+
         db.session.commit()
         
         return jsonify({
@@ -184,20 +196,33 @@ def procesar_venta():
 @sales_bp.route('/api/producto/<path:sku>', methods=['GET'])
 @login_required
 def api_buscar_producto(sku):
-    producto = Product.query.filter_by(sku=sku, tipo_inventario='tienda').first()
+    producto = Product.query.filter(Product.sku == sku, Product.tipo_inventario.in_(['tienda', 'celulares'])).first()
+    auto_select_variant = None
     
     if not producto:
-        return jsonify({'error': 'Código SKU no encontrado en el sistema'}), 404
+        # Búsqueda por IMEI en variantes de celulares
+        variante = ProductVariant.query.join(Product).filter(
+            Product.tipo_inventario == 'celulares',
+            ProductVariant.nombre_variante.like(f"%{sku}%")
+        ).first()
+        
+        if variante:
+            producto = variante.producto
+            auto_select_variant = variante.id
+        else:
+            return jsonify({'error': 'Código SKU o IMEI no encontrado en el sistema'}), 404
         
     return jsonify({
         'id': producto.id,
         'nombre': producto.nombre,
         'sku': producto.sku,
+        'tipo_inventario': producto.tipo_inventario,
         'cantidad_stock': producto.total_stock,
         'precio_minimo': float(producto.precio_minimo),
         'precio_limite': float(producto.precio_costo) if current_user.rol == 'admin' else float(producto.precio_minimo),
         'precio_sugerido': float(producto.precio_sugerido),
-        'variantes': [{"id": v.id, "nombre": v.nombre_variante, "stock": v.cantidad_stock, "precio_minimo": float(v.precio_minimo or producto.precio_minimo), "precio_limite": float(v.precio_costo or producto.precio_costo) if current_user.rol == 'admin' else float(v.precio_minimo or producto.precio_minimo), "precio_sugerido": float(v.precio_sugerido or producto.precio_sugerido)} for v in producto.variantes]
+        'variantes': [{"id": v.id, "nombre": v.nombre_variante, "stock": v.cantidad_stock, "precio_minimo": float(v.precio_minimo or producto.precio_minimo), "precio_limite": float(v.precio_costo or producto.precio_costo) if current_user.rol == 'admin' else float(v.precio_minimo or producto.precio_minimo), "precio_sugerido": float(v.precio_sugerido or producto.precio_sugerido)} for v in producto.variantes],
+        'auto_select_variant': auto_select_variant
     })
 
 # Ruta para la Impresión del formato Térmico (Ticket)
@@ -342,6 +367,9 @@ def eliminar_venta(sale_id):
                 variante = ProductVariant.query.with_for_update().get(detalle.variant_id)
                 if variante:
                     variante.cantidad_stock += detalle.cantidad_vendida
+                producto = Product.query.with_for_update().get(detalle.product_id)
+                if producto:
+                    producto.cantidad_stock += detalle.cantidad_vendida
             else:
                 producto = Product.query.with_for_update().get(detalle.product_id)
                 if producto:
@@ -367,7 +395,7 @@ def catalogo():
     if query_str:
         # Motor de similitud Case-Insensitive (Like)
         search_term = f"%{query_str}%"
-        productos = Product.query.filter_by(tipo_inventario='tienda').filter(
+        productos = Product.query.filter(Product.tipo_inventario.in_(['tienda', 'celulares'])).filter(
             or_(
                 Product.sku.ilike(search_term), 
                 Product.nombre.ilike(search_term)
@@ -375,6 +403,6 @@ def catalogo():
         ).limit(50).all()
     else:
         # Límite pasivo de 50 ítems para ahorrar memoria RAM de BD en carga inicial
-        productos = Product.query.filter_by(tipo_inventario='tienda').limit(50).all()
+        productos = Product.query.filter(Product.tipo_inventario.in_(['tienda', 'celulares'])).limit(50).all()
         
     return render_template('sales/catalogo.html', productos=productos, q=query_str)

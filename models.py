@@ -23,6 +23,14 @@ class User(UserMixin, db.Model):
     ajustes_stock = db.relationship('StockAdjustment', backref='admin', lazy=True)
     arqueos = db.relationship('ArqueoCaja', backref='cajero', lazy=True)
 
+    def __init__(self, nombre=None, email=None, telefono=None, password_hash=None, rol=None, **kwargs):
+        if nombre is not None: kwargs['nombre'] = nombre
+        if email is not None: kwargs['email'] = email
+        if telefono is not None: kwargs['telefono'] = telefono
+        if password_hash is not None: kwargs['password_hash'] = password_hash
+        if rol is not None: kwargs['rol'] = rol
+        super(User, self).__init__(**kwargs)
+
 class Product(db.Model):
     __tablename__ = 'products'
     
@@ -37,6 +45,12 @@ class Product(db.Model):
     imagen = db.Column(db.String(255), nullable=True) # Nombre de la foto subida
     observacion = db.Column(db.Text, nullable=True) # Nota descriptiva
     fecha_creacion = db.Column(db.DateTime, default=obtener_hora_bogota)
+    
+    # Campos específicos para módulo de celulares (tipo_inventario='celulares')
+    imei = db.Column(db.String(50), unique=True, nullable=True, index=True)
+    marca = db.Column(db.String(100), nullable=True)
+    modelo_celular = db.Column(db.String(100), nullable=True)
+    estado_celular = db.Column(db.String(50), nullable=True, default='Nuevo') # Nuevo, Usado
     
     detalles_venta = db.relationship('SaleDetail', backref='producto', lazy=True)
     ajustes_stock = db.relationship('StockAdjustment', backref='producto_rel', lazy=True)
@@ -111,6 +125,7 @@ class Sale(db.Model):
     
     detalles = db.relationship('SaleDetail', backref='venta', lazy=True, cascade="all, delete-orphan")
     pagos = db.relationship('SalePayment', backref='venta', lazy=True, cascade="all, delete-orphan")
+    cliente = db.relationship('SaleClient', backref='venta', lazy=True, cascade="all, delete-orphan", uselist=False)
 
     @property
     def metodo_pago_display(self):
@@ -134,6 +149,18 @@ class SalePayment(db.Model):
     sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'), nullable=False)
     metodo_pago = db.Column(db.String(50), nullable=False)  # efectivo, nequi, bancolombia, daviplata
     monto = db.Column(db.Numeric(10, 2), nullable=False)
+
+class SaleClient(db.Model):
+    """Modelo para almacenar los datos del cliente, especialmente requerido en ventas de celulares."""
+    __tablename__ = 'sale_clients'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    sale_id = db.Column(db.Integer, db.ForeignKey('sales.id'), nullable=False, unique=True)
+    nombre = db.Column(db.String(150), nullable=False)
+    documento = db.Column(db.String(50), nullable=False, index=True)
+    telefono = db.Column(db.String(50), nullable=False)
+    
+    # Relación configurada desde Sale
 
 class SaleDetail(db.Model):
     __tablename__ = 'sale_details'
@@ -173,6 +200,7 @@ class ArqueoCaja(db.Model):
     total_efectivo_sistema = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     total_transferencia_sistema = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     total_unidades_ch = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
+    total_celulares = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     fecha_creacion = db.Column(db.DateTime, default=obtener_hora_bogota)
 
 class Maneo(db.Model):
@@ -199,6 +227,7 @@ class Expense(db.Model):
     categoria = db.Column(db.String(100), nullable=False)
     descripcion = db.Column(db.String(255), nullable=True)
     monto = db.Column(db.Numeric(10, 2), nullable=False)
+    metodo_pago = db.Column(db.String(50), nullable=False, default='efectivo')
     fecha_gasto = db.Column(db.DateTime, default=obtener_hora_bogota)
 
     usuario = db.relationship('User', backref='gastos', lazy=True)

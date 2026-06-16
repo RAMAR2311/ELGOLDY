@@ -170,6 +170,16 @@
                     <li class="nav-item">
                         <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/inventory"><i class="fa-solid fa-box text-muted me-2" style="width:20px; text-align:center;"></i> Inventario Tienda</a>
                     </li>
+                    <!-- Módulo Celulares Independiente -->
+                    <li class="nav-item">
+                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('celulares_bp.inventario') }}"><i class="fa-solid fa-mobile-screen-button text-brand-blue me-2" style="width:20px; text-align:center;"></i> Inventario Celulares</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('celulares_bp.historial_ventas') }}"><i class="fa-solid fa-clock-rotate-left text-brand-pink me-2" style="width:20px; text-align:center;"></i> Historial Celulares</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('celulares_bp.clientes') }}"><i class="fa-solid fa-users text-success me-2" style="width:20px; text-align:center;"></i> Clientes Celulares</a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/sales/nueva"><i class="fa-solid fa-cash-register text-muted me-2" style="width:20px; text-align:center;"></i> Caja Terminal</a>
                     </li>

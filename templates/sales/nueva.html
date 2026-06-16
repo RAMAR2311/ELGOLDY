@@ -220,6 +220,41 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Datos del Cliente (Celulares) -->
+<div class="modal fade" id="modalClienteCelular" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-brand-blue text-white border-0">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-tag me-2"></i>Datos del Cliente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-warning py-2 mb-4 border-0 small">
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i> <strong>Venta de Celular Detectada:</strong> Es obligatorio registrar los datos del cliente para temas de garantía y soporte técnico.
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre Completo</label>
+                    <input type="text" id="cliente_nombre" class="form-control bg-light" placeholder="Ej: Juan Pérez" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Cédula / Documento</label>
+                    <input type="text" id="cliente_documento" class="form-control bg-light" placeholder="Número de identificación" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Teléfono / WhatsApp</label>
+                    <input type="text" id="cliente_telefono" class="form-control bg-light" placeholder="Ej: 3001234567" required>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success rounded-pill fw-bold px-4" onclick="confirmarVentaCelular()">
+                    <i class="fa-solid fa-check me-1"></i> Confirmar Venta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Motor Javascript Vanilla para procesar Cajas Dinámicas sin recargar -->
 <script>
     let carrito = [];
@@ -290,7 +325,7 @@
         renderizarCarrito();
         resetPagosMixtos();
     });
-    document.getElementById('btn_process_sale').addEventListener('click', procesarPago);
+
 
     // Botón para agregar producto manual (prestado de otro local)
     document.getElementById('btn_agregar_manual').addEventListener('click', function() {
@@ -497,6 +532,10 @@
                 
                 if (producto.variantes && producto.variantes.length > 0) {
                     let defaultVar = producto.variantes[0];
+                    if (producto.auto_select_variant) {
+                        const foundVar = producto.variantes.find(v => v.id === producto.auto_select_variant);
+                        if (foundVar) defaultVar = foundVar;
+                    }
                     initial_variant_id = defaultVar.id;
                     initial_precio = defaultVar.precio_sugerido;
                     initial_limite = defaultVar.precio_limite;
@@ -507,6 +546,7 @@
                     id: producto.id,
                     sku: producto.sku,
                     nombre: producto.nombre,
+                    tipo_inventario: producto.tipo_inventario,
                     cantidad: 1,
                     precio_final: initial_precio, 
                     precio_limite: initial_limite,
@@ -705,11 +745,46 @@
         }
     }
 
-    // Evento Transaccional JSON de Salida
-    async function procesarPago() {
+    document.getElementById('btn_process_sale').addEventListener('click', function() {
         if (carrito.length === 0) {
             return alert('Agregue un número de serie válido. El carrito está vacío.');
         }
+
+        const tieneCelular = carrito.some(item => item.tipo_inventario === 'celulares');
+        if (tieneCelular) {
+            // Mostrar modal de cliente
+            const modalCliente = new bootstrap.Modal(document.getElementById('modalClienteCelular'));
+            modalCliente.show();
+        } else {
+            // Procesar normal sin cliente
+            procesarPago(null);
+        }
+    });
+
+    function confirmarVentaCelular() {
+        const nombre = document.getElementById('cliente_nombre').value.trim();
+        const doc = document.getElementById('cliente_documento').value.trim();
+        const tel = document.getElementById('cliente_telefono').value.trim();
+
+        if (!nombre || !doc || !tel) {
+            return alert('Por favor completa todos los datos del cliente.');
+        }
+
+        const datosCliente = {
+            nombre: nombre,
+            documento: doc,
+            telefono: tel
+        };
+
+        const modalEl = document.getElementById('modalClienteCelular');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        modalInstance.hide();
+
+        procesarPago(datosCliente);
+    }
+
+    // Evento Transaccional JSON de Salida
+    async function procesarPago(datosCliente = null) {
 
         const esMixto = document.getElementById('toggle_pago_mixto').checked;
 
@@ -763,7 +838,8 @@
                 return base;
             }),
             pagos: pagosPayload,
-            fecha_venta: document.getElementById('fecha_venta_input') ? document.getElementById('fecha_venta_input').value : null
+            fecha_venta: document.getElementById('fecha_venta_input') ? document.getElementById('fecha_venta_input').value : null,
+            cliente: datosCliente
         };
 
         try {

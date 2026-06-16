@@ -158,9 +158,12 @@
                 <!-- Cortar la longitud del título si es gigantesco para no descuadrar la ticketera -->
                 <td class="col-prod">
                     {% if detalle.nombre_manual %}
-                        {{ detalle.nombre_manual[:25] }}{% if detalle.nombre_manual|length > 25 %}...{% endif %}
+                        {{ detalle.nombre_manual[:40] }}{% if detalle.nombre_manual|length > 40 %}...{% endif %}
                     {% else %}
-                        {{ detalle.producto.nombre[:25] }}{% if detalle.producto.nombre|length > 25 %}...{% endif %}
+                        {{ detalle.producto.nombre[:40] }}{% if detalle.producto.nombre|length > 40 %}...{% endif %}
+                        {% if detalle.variante %}
+                            <br><small style="font-size: 0.75rem;">{{ detalle.variante.nombre_variante }}</small>
+                        {% endif %}
                     {% endif %}
                 </td>
                 <td class="col-sub">${{ (detalle.precio_venta_final * detalle.cantidad_vendida)|cop }}</td>

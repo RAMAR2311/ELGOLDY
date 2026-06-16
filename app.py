@@ -54,6 +54,11 @@ def create_app():
     from routes.bodega import bodega_bp
     app.register_blueprint(bodega_bp, url_prefix='/bodega')
 
+    # Registro de Blueprint Celulares
+    from routes.celulares import celulares_bp
+    app.register_blueprint(celulares_bp, url_prefix='/celulares')
+
+
     @app.template_filter('cop')
     def cop_filter(value):
         if value is None:

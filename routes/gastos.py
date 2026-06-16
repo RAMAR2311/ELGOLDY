@@ -19,13 +19,21 @@ def index():
             
         categoria = request.form.get('categoria')
         descripcion = request.form.get('descripcion')
-        monto = float(request.form.get('monto', 0))
+        montos = request.form.getlist('monto[]')
+        metodos_pago = request.form.getlist('metodo_pago[]')
+        
+        # Compatibilidad con formulario antiguo (sin arrays)
+        if not montos:
+            monto_single = request.form.get('monto')
+            if monto_single:
+                montos = [monto_single]
+                metodos_pago = [request.form.get('metodo_pago', 'efectivo')]
+
         fecha_str = request.form.get('fecha_gasto')
 
         # Use the provided date or fallback to current datetime
         if fecha_str:
             try:
-                # El front devuelve yy-mm-dd si se uso <input type="date">
                 fecha_obj = datetime.strptime(fecha_str, '%Y-%m-%d')
             except ValueError:
                 fecha_obj = obtener_hora_bogota()
@@ -33,15 +41,19 @@ def index():
             fecha_obj = obtener_hora_bogota()
 
         try:
-            nuevo_gasto = Expense(
-                usuario_id=current_user.id,
-                tipo_gasto=tipo_gasto,
-                categoria=categoria,
-                descripcion=descripcion,
-                monto=monto,
-                fecha_gasto=fecha_obj
-            )
-            db.session.add(nuevo_gasto)
+            for monto, metodo in zip(montos, metodos_pago):
+                valor_float = float(monto)
+                if valor_float > 0:
+                    nuevo_gasto = Expense(
+                        usuario_id=current_user.id,
+                        tipo_gasto=tipo_gasto,
+                        categoria=categoria,
+                        descripcion=descripcion,
+                        monto=valor_float,
+                        metodo_pago=metodo,
+                        fecha_gasto=fecha_obj
+                    )
+                    db.session.add(nuevo_gasto)
             db.session.commit()
             flash('Gasto registrado exitosamente.', 'success')
         except Exception as e:
