@@ -1,4 +1,9 @@
 import os
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde el archivo .env
+load_dotenv()
+
 from flask import Flask, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
