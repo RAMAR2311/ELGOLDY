@@ -79,9 +79,10 @@ def create_app():
 
     return app
 
+# Definición global para Gunicorn
+app = create_app()
+
 if __name__ == '__main__':
-    app = create_app()
-    
     # ---------------- LÓGICA DE INICIALIZACIÓN ----------------
     with app.app_context():
         from models import db, User
