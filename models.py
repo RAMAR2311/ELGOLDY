@@ -17,7 +17,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     telefono = db.Column(db.String(20)) # Nuevo Campo de Contacto (Nullable por Defecto)
     password_hash = db.Column(db.String(256), nullable=False)
-    rol = db.Column(db.String(50), nullable=False, default='vendedor')
+    rol = db.Column(db.String(50), nullable=False, default='cajero')
     
     ventas = db.relationship('Sale', backref='vendedor', lazy=True)
     ajustes_stock = db.relationship('StockAdjustment', backref='admin', lazy=True)
@@ -31,13 +31,25 @@ class User(UserMixin, db.Model):
         if rol is not None: kwargs['rol'] = rol
         super(User, self).__init__(**kwargs)
 
+class Categoria(db.Model):
+    __tablename__ = 'categorias'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    nombre = db.Column(db.String(100), nullable=False, unique=True)
+    
+    productos = db.relationship('Product', backref='categoria', lazy=True)
+
+    def __init__(self, **kwargs):
+        super(Categoria, self).__init__(**kwargs)
+
 class Product(db.Model):
     __tablename__ = 'products'
     
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(150), nullable=False)
     sku = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    tipo_inventario = db.Column(db.String(50), nullable=False, server_default='tienda') # 'tienda' o 'bodega'
+    tipo_producto = db.Column(db.String(50), nullable=False, server_default='producto_final') # 'insumo', 'producto_final', 'adicional'
+    categoria_id = db.Column(db.Integer, db.ForeignKey('categorias.id'), nullable=True)
     cantidad_stock = db.Column(db.Integer, nullable=False, default=0)
     precio_costo = db.Column(db.Numeric(10, 2), nullable=False, default=0.00) # El Costo de Bodega
     precio_minimo = db.Column(db.Numeric(10, 2), nullable=False)
@@ -46,15 +58,13 @@ class Product(db.Model):
     observacion = db.Column(db.Text, nullable=True) # Nota descriptiva
     fecha_creacion = db.Column(db.DateTime, default=obtener_hora_bogota)
     
-    # Campos específicos para módulo de celulares (tipo_inventario='celulares')
-    imei = db.Column(db.String(50), unique=True, nullable=True, index=True)
-    marca = db.Column(db.String(100), nullable=True)
-    modelo_celular = db.Column(db.String(100), nullable=True)
-    estado_celular = db.Column(db.String(50), nullable=True, default='Nuevo') # Nuevo, Usado
-    
     detalles_venta = db.relationship('SaleDetail', backref='producto', lazy=True)
     ajustes_stock = db.relationship('StockAdjustment', backref='producto_rel', lazy=True)
     variantes = db.relationship('ProductVariant', backref='producto', lazy=True, cascade="all, delete-orphan")
+    recetas = db.relationship('Receta', foreign_keys='Receta.producto_final_id', backref='producto_final', lazy=True, cascade="all, delete-orphan")
+
+    def __init__(self, **kwargs):
+        super(Product, self).__init__(**kwargs)
 
     @property
     def total_stock(self):
@@ -114,6 +124,23 @@ class ProductVariant(db.Model):
     precio_minimo = db.Column(db.Numeric(10, 2), nullable=True)
     precio_sugerido = db.Column(db.Numeric(10, 2), nullable=True)
 
+    def __init__(self, **kwargs):
+        super(ProductVariant, self).__init__(**kwargs)
+
+class Receta(db.Model):
+    """Modelo para vincular un producto final (ej. Hot Dog) con sus insumos (Pan, Salchicha)."""
+    __tablename__ = 'recetas'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    producto_final_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    insumo_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    cantidad_requerida = db.Column(db.Numeric(10, 2), nullable=False, default=1.0) # Cuántas unidades del insumo requiere
+    
+    insumo = db.relationship('Product', foreign_keys=[insumo_id])
+
+    def __init__(self, **kwargs):
+        super(Receta, self).__init__(**kwargs)
+
 class Sale(db.Model):
     __tablename__ = 'sales'
     
@@ -122,10 +149,14 @@ class Sale(db.Model):
     fecha_venta = db.Column(db.DateTime, default=obtener_hora_bogota)
     monto_total = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     metodo_pago = db.Column(db.String(50), nullable=False, default='efectivo')
+    numero_turno = db.Column(db.Integer, nullable=True) # Turno del día para llamar al cliente
     
     detalles = db.relationship('SaleDetail', backref='venta', lazy=True, cascade="all, delete-orphan")
     pagos = db.relationship('SalePayment', backref='venta', lazy=True, cascade="all, delete-orphan")
     cliente = db.relationship('SaleClient', backref='venta', lazy=True, cascade="all, delete-orphan", uselist=False)
+
+    def __init__(self, **kwargs):
+        super(Sale, self).__init__(**kwargs)
 
     @property
     def metodo_pago_display(self):
@@ -150,6 +181,9 @@ class SalePayment(db.Model):
     metodo_pago = db.Column(db.String(50), nullable=False)  # efectivo, nequi, bancolombia, daviplata
     monto = db.Column(db.Numeric(10, 2), nullable=False)
 
+    def __init__(self, **kwargs):
+        super(SalePayment, self).__init__(**kwargs)
+
 class SaleClient(db.Model):
     """Modelo para almacenar los datos del cliente, especialmente requerido en ventas de celulares."""
     __tablename__ = 'sale_clients'
@@ -162,6 +196,9 @@ class SaleClient(db.Model):
     
     # Relación configurada desde Sale
 
+    def __init__(self, **kwargs):
+        super(SaleClient, self).__init__(**kwargs)
+
 class SaleDetail(db.Model):
     __tablename__ = 'sale_details'
     
@@ -171,11 +208,14 @@ class SaleDetail(db.Model):
     variant_id = db.Column(db.Integer, db.ForeignKey('product_variants.id'), nullable=True)
     cantidad_vendida = db.Column(db.Integer, nullable=False)
     precio_venta_final = db.Column(db.Numeric(10, 2), nullable=False)
-    # Campos para productos manuales (prestados de otros locales)
-    nombre_manual = db.Column(db.String(200), nullable=True)
-    precio_costo_manual = db.Column(db.Numeric(10, 2), nullable=True)
+    
+    # Notas del cliente para modificaciones (ej. "Sin cebolla")
+    notas = db.Column(db.String(255), nullable=True)
 
     variante = db.relationship('ProductVariant', backref='ventas_rel', lazy=True)
+
+    def __init__(self, **kwargs):
+        super(SaleDetail, self).__init__(**kwargs)
 
 class StockAdjustment(db.Model):
     __tablename__ = 'stock_adjustments'
@@ -188,6 +228,9 @@ class StockAdjustment(db.Model):
     stock_nuevo = db.Column(db.Integer, nullable=False)
     fecha_ajuste = db.Column(db.DateTime, default=obtener_hora_bogota)
 
+    def __init__(self, **kwargs):
+        super(StockAdjustment, self).__init__(**kwargs)
+
 class ArqueoCaja(db.Model):
     __tablename__ = 'arqueo_caja'
     
@@ -196,27 +239,14 @@ class ArqueoCaja(db.Model):
     fecha_arqueo = db.Column(db.Date, nullable=False)
     base_inicial = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     gastos_del_dia = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
+    retiro_grueso = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     observaciones_gastos = db.Column(db.String(255), nullable=True)
     total_efectivo_sistema = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     total_transferencia_sistema = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
-    total_unidades_ch = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
-    total_celulares = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     fecha_creacion = db.Column(db.DateTime, default=obtener_hora_bogota)
 
-class Maneo(db.Model):
-    __tablename__ = 'maneos'
-
-    id = db.Column(db.Integer, primary_key=True)
-    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
-    variant_id = db.Column(db.Integer, db.ForeignKey('product_variants.id'), nullable=True)
-    local_vecino = db.Column(db.String(150), nullable=False)
-    cantidad = db.Column(db.Integer, nullable=False)
-    estado = db.Column(db.String(50), nullable=False, default='PENDIENTE') # PENDIENTE, FACTURADO, DEVUELTO
-    fecha_prestamo = db.Column(db.DateTime, default=obtener_hora_bogota)
-    fecha_resolucion = db.Column(db.DateTime, nullable=True)
-
-    producto = db.relationship('Product', backref='maneos', lazy=True)
-    variante = db.relationship('ProductVariant', backref='maneos_rel', lazy=True)
+    def __init__(self, **kwargs):
+        super(ArqueoCaja, self).__init__(**kwargs)
 
 class Expense(db.Model):
     __tablename__ = 'expenses'
@@ -232,91 +262,6 @@ class Expense(db.Model):
 
     usuario = db.relationship('User', backref='gastos', lazy=True)
 
-class Cliente(db.Model):
-    __tablename__ = 'clientes'
+    def __init__(self, **kwargs):
+        super(Expense, self).__init__(**kwargs)
 
-    id = db.Column(db.Integer, primary_key=True)
-    nombre_o_razon_social = db.Column(db.String(150), nullable=False)
-    documento_o_nit = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    telefono = db.Column(db.String(50), nullable=False)
-    email = db.Column(db.String(120), nullable=True)
-    direccion = db.Column(db.String(255), nullable=True)
-    creado_por_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True) # ID del vendedor/admin que lo creó
-    fecha_registro = db.Column(db.DateTime, default=obtener_hora_bogota)
-
-    facturas = db.relationship('FacturaBodega', backref='cliente', lazy=True)
-    abonos = db.relationship('AbonoBodega', backref='cliente', lazy=True)
-
-    @property
-    def total_contado(self):
-        return sum(f.monto_total for f in self.facturas if f.modalidad == 'contado')
-
-    @property
-    def total_credito(self):
-        return sum(f.monto_total for f in self.facturas if f.modalidad == 'credito')
-
-    @property
-    def total_abonado(self):
-        # Solo sumamos abonos que NO son de facturas de contado (los de contado ya se reflejan en total_contado)
-        return sum(a.monto for a in self.abonos if not (a.factura and a.factura.modalidad == 'contado'))
-
-    @property
-    def deuda_total(self):
-        # La deuda es el total de crédito menos lo abonado a crédito o a cuenta global
-        return self.total_credito - self.total_abonado
-
-    @property
-    def estado_global(self):
-        return "Con Deuda" if self.deuda_total > 0 else "Al Día"
-
-class FacturaBodega(db.Model):
-    __tablename__ = 'facturas_bodega'
-
-    id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=False)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    numero_factura = db.Column(db.String(100), nullable=False)
-    archivo_ruta = db.Column(db.String(255), nullable=True)
-    monto_total = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
-    modalidad = db.Column(db.String(50), nullable=False, default='credito') # contado o credito
-    estado = db.Column(db.String(50), nullable=False, default='Pendiente') # Pendiente, Parcial, Pagado
-    fecha_subida = db.Column(db.DateTime, default=obtener_hora_bogota)
-
-    usuario = db.relationship('User', backref='facturas_subidas', lazy=True)
-    abonos = db.relationship('AbonoBodega', backref='factura', lazy=True, cascade="all, delete-orphan")
-    detalles = db.relationship('FacturaBodegaDetalle', backref='factura', lazy=True, cascade="all, delete-orphan")
-
-    @property
-    def saldo_pendiente(self):
-        # Esta propiedad se vuelve menos relevante con abonos globales, 
-        # pero podemos mantenerla como una referencia teórica si no hay abonos.
-        # Sin embargo, para no romper código existente, la dejamos así por ahora.
-        total_abonado_factura = sum(abono.monto for abono in self.abonos) or 0
-        return self.monto_total - total_abonado_factura
-
-class FacturaBodegaDetalle(db.Model):
-    __tablename__ = 'facturas_bodega_detalles'
-
-    id = db.Column(db.Integer, primary_key=True)
-    factura_id = db.Column(db.Integer, db.ForeignKey('facturas_bodega.id'), nullable=False)
-    producto_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
-    variant_id = db.Column(db.Integer, db.ForeignKey('product_variants.id'), nullable=True)
-    cantidad = db.Column(db.Integer, nullable=False)
-    precio_venta = db.Column(db.Numeric(10, 2), nullable=True) # Opcional para futuros análisis
-
-    producto = db.relationship('Product', backref='detalles_factura_bodega', lazy=True)
-    variante = db.relationship('ProductVariant', backref='detalles_factura_bodega_rel', lazy=True)
-
-class AbonoBodega(db.Model):
-    __tablename__ = 'abonos_bodega'
-
-    id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey('clientes.id'), nullable=False)
-    factura_id = db.Column(db.Integer, db.ForeignKey('facturas_bodega.id'), nullable=True)
-    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    monto = db.Column(db.Numeric(10, 2), nullable=False)
-    metodo_pago = db.Column(db.String(50), nullable=False, default='efectivo')
-    observacion = db.Column(db.String(255), nullable=True)
-    fecha_abono = db.Column(db.DateTime, default=obtener_hora_bogota)
-
-    usuario = db.relationship('User', backref='abonos_registrados', lazy=True)

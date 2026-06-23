@@ -4,7 +4,7 @@
 <div class="row mb-4">
     <div class="col-12 d-flex justify-content-between align-items-center mb-4">
         <!-- Título con acento Azul Turquesa -->
-        <h2 class="fw-bolder m-0" style="color: var(--brand-blue);">
+        <h2 class="fw-bolder m-0" style="color: var(--brand-yellow);">
             <i class="fa-solid fa-list-check me-2"></i>Ventas del Día
         </h2>
         <div class="d-flex align-items-center gap-2">
@@ -16,19 +16,19 @@
 
     <!-- UI: Resumen Financiero Rápido de Hoy -->
     <div class="col-6 col-md-4 mb-3">
-        <div class="card card-custom h-100" style="border-left: 6px solid var(--brand-blue) !important;">
+        <div class="card card-custom h-100" style="border-left: 6px solid var(--brand-yellow) !important;">
             <div class="card-body py-3 ps-3">
                 <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 0.75rem;"><i class="fa-solid fa-money-bills me-1"></i> Efectivo Hoy</p>
-                <h4 class="fw-bolder m-0" style="color: var(--brand-blue);">${{ (total_efectivo)|cop }}</h4>
+                <h4 class="fw-bolder m-0" style="color: var(--brand-yellow);">${{ (total_efectivo)|cop }}</h4>
             </div>
         </div>
     </div>
     
     <div class="col-6 col-md-4 mb-3">
-        <div class="card card-custom h-100" style="border-left: 6px solid var(--brand-pink) !important;">
+        <div class="card card-custom h-100" style="border-left: 6px solid var(--brand-orange) !important;">
             <div class="card-body py-3 ps-3">
                 <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 0.75rem;"><i class="fa-solid fa-mobile-button me-1"></i> Transf. Hoy</p>
-                <h4 class="fw-bolder m-0" style="color: var(--brand-pink);">${{ (total_transferencias)|cop }}</h4>
+                <h4 class="fw-bolder m-0" style="color: var(--brand-orange);">${{ (total_transferencias)|cop }}</h4>
             </div>
         </div>
     </div>
@@ -59,7 +59,7 @@
                 {% for venta in ventas %}
                 <tr>
                     <td class="fw-bold text-brand-black align-middle">Ticket #{{ "%05d"|format(venta.id) }}</td>
-                    <td class="align-middle text-muted"><i class="fa-regular fa-clock text-brand-pink me-1"></i> {{ venta.fecha_venta.strftime('%H:%M') }}</td>
+                    <td class="align-middle text-muted"><i class="fa-regular fa-clock text-brand-orange me-1"></i> {{ venta.fecha_venta.strftime('%H:%M') }}</td>
                     <td class="align-middle fw-semibold text-brand-black">
                         <i class="fa-solid fa-user-circle text-muted me-1"></i> {{ venta.vendedor.nombre }}
                     </td>
@@ -90,7 +90,7 @@
                 {% else %}
                 <tr>
                     <td colspan="5" class="text-center py-5">
-                        <i class="fa-solid fa-store-slash fs-1 mb-3" style="color: var(--brand-pink);"></i>
+                        <i class="fa-solid fa-store-slash fs-1 mb-3" style="color: var(--brand-orange);"></i>
                         <h4 class="text-brand-black fw-bold">No hay ventas registradas el día de hoy</h4>
                         <p class="text-muted mb-0">Cada día este registro inicia limpio desde cero.</p>
                     </td>

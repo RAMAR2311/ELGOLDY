@@ -3,8 +3,8 @@
 {% block content %}
 <div class="row mb-4">
     <div class="col-12 d-flex justify-content-between align-items-center mb-4">
-        <!-- Título con acento Azul Turquesa según reglas de Branding (.text-brand-blue es #A3D8DE) -->
-        <h2 class="fw-bolder m-0" style="color: var(--brand-blue);">
+        <!-- Título con acento Azul Turquesa según reglas de Branding (.text-brand-yellow es #A3D8DE) -->
+        <h2 class="fw-bolder m-0" style="color: var(--brand-yellow);">
             <i class="fa-solid fa-clock-rotate-left me-2"></i>Historial de Operaciones
         </h2>
         <div class="d-flex align-items-center gap-2 d-print-none">
@@ -19,7 +19,7 @@
 
     <!-- Encabezado de Impresión / PDF -->
     <div class="col-12 d-none d-print-block text-center mb-4 pb-3 border-bottom">
-        <h1 class="fw-bold text-brand-black mb-1"><i class="fa-solid fa-chart-line me-2"></i> cases.com</h1>
+        <h1 class="fw-bold text-brand-black mb-1"><i class="fa-solid fa-chart-line me-2"></i> EL GOLDY</h1>
         <h4 class="text-muted fw-semibold">REPORTE CONSOLIDADO DE VENTAS</h4>
         <p class="mb-0 text-secondary">
             Período Analizado: <strong>{{ fecha_inicio if fecha_inicio else 'Inicios' }}</strong> hasta <strong>{{ fecha_fin if fecha_fin else 'Hoy' }}</strong>
@@ -31,10 +31,10 @@
 
     <!-- UI: Resumen Financiero Dinámico (Tarjetas) -->
     <div class="col-6 col-md-3 mb-3">
-        <div class="card card-custom h-100" style="border-left: 6px solid var(--brand-blue) !important;">
+        <div class="card card-custom h-100" style="border-left: 6px solid var(--brand-yellow) !important;">
             <div class="card-body py-3 ps-3">
                 <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 0.75rem;"><i class="fa-solid fa-money-bills me-1"></i> Efectivo</p>
-                <h4 class="fw-bolder m-0" style="color: var(--brand-blue);">${{ (total_efectivo)|cop }}</h4>
+                <h4 class="fw-bolder m-0" style="color: var(--brand-yellow);">${{ (total_efectivo)|cop }}</h4>
             </div>
         </div>
     </div>
@@ -68,10 +68,10 @@
 
     {% if total_transferencia_legacy > 0 %}
     <div class="col-12 mb-3">
-        <div class="card card-custom h-100" style="border-left: 6px solid var(--brand-pink) !important;">
+        <div class="card card-custom h-100" style="border-left: 6px solid var(--brand-orange) !important;">
             <div class="card-body py-3 ps-3">
                 <p class="text-muted fw-bold text-uppercase mb-1" style="font-size: 0.75rem;"><i class="fa-solid fa-clock-rotate-left me-1"></i> Transf. Históricas</p>
-                <h4 class="fw-bolder m-0" style="color: var(--brand-pink);">${{ (total_transferencia_legacy)|cop }}</h4>
+                <h4 class="fw-bolder m-0" style="color: var(--brand-orange);">${{ (total_transferencia_legacy)|cop }}</h4>
             </div>
         </div>
     </div>
@@ -96,7 +96,7 @@
                     </div>
                     <div class="col-md-4">
                         <!-- El botón manda la alerta GET en color predominante Turquesa -->
-                        <button type="submit" class="btn btn-blue w-100 rounded-3 shadow-sm fw-bold">
+                        <button type="submit" class="btn btn-yellow w-100 rounded-3 shadow-sm fw-bold">
                             <i class="fa-solid fa-magnifying-glass me-2"></i>Aplicar Filtros
                         </button>
                         {% if fecha_inicio or fecha_fin %}
@@ -128,7 +128,7 @@
                 {% for venta in ventas %}
                 <tr>
                     <td class="fw-bold text-brand-black align-middle">Ticket #{{ "%05d"|format(venta.id) }}</td>
-                    <td class="align-middle text-muted"><i class="fa-regular fa-calendar text-brand-pink me-1"></i> {{ venta.fecha_venta.strftime('%Y-%m-%d a las %H:%M') }}</td>
+                    <td class="align-middle text-muted"><i class="fa-regular fa-calendar text-brand-orange me-1"></i> {{ venta.fecha_venta.strftime('%Y-%m-%d a las %H:%M') }}</td>
                     <td class="align-middle fw-semibold text-brand-black">
                         <i class="fa-solid fa-user-circle text-muted me-1"></i> {{ venta.vendedor.nombre }}
                     </td>
@@ -164,7 +164,7 @@
                     <td class="text-center align-middle">
                         <div class="d-flex flex-column gap-2">
                             <!-- Botón Secundario Rosa Pastel -->
-                            <a href="{{ url_for('sales_bp.imprimir_ticket', sale_id=venta.id) }}" target="_blank" class="btn btn-pink btn-sm rounded-pill px-3 fw-bold shadow-sm w-100">
+                            <a href="{{ url_for('sales_bp.imprimir_ticket', sale_id=venta.id) }}" target="_blank" class="btn btn-orange btn-sm rounded-pill px-3 fw-bold shadow-sm w-100">
                                 <i class="fa-solid fa-receipt me-1"></i> Ver Recibo
                             </a>
                             
@@ -183,7 +183,7 @@
                 {% else %}
                 <tr>
                     <td colspan="6" class="text-center py-5">
-                        <i class="fa-solid fa-cash-register fs-1 mb-3" style="color: var(--brand-pink);"></i>
+                        <i class="fa-solid fa-cash-register fs-1 mb-3" style="color: var(--brand-orange);"></i>
                         <h4 class="text-brand-black fw-bold">Libro de Cajas en Blanco</h4>
                         <p class="text-muted mb-0">Acualmente no hay facturas ni transacciones emitidas.</p>
                     </td>

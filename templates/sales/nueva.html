@@ -3,28 +3,86 @@
 {% block content %}
 <!-- Título de Pantalla Renombrado (Requerimento) -->
 <div class="d-flex align-items-center mb-4">
-    <h2 class="fw-bold text-brand-black m-0"><i class="fa-solid fa-cash-register me-2" style="color: var(--brand-pink);"></i>Caja Central</h2>
+    <h2 class="fw-bold text-brand-black m-0"><i class="fa-solid fa-cash-register me-2" style="color: var(--brand-orange);"></i>Caja Central</h2>
 </div>
 
 <div class="row">
     <!-- UI Escáner y Carrito -->
     <div class="col-lg-8 mb-4">
         
-        <!-- Panel de Escaneo -->
-        <div class="card card-custom p-4 mb-4">
-            <label class="form-label fw-bold text-brand-black">Buscar o Escanear Código</label>
-            <div class="d-flex gap-2">
-                <div class="input-group input-group-lg shadow-sm border-0 rounded-3 overflow-hidden flex-grow-1">
-                    <span class="input-group-text bg-white border-0"><i class="fa-solid fa-barcode text-muted"></i></span>
-                    <input type="text" class="form-control border-0" id="sku_input" placeholder="Ingresa SKU exacto..." autofocus>
-                    <!-- Botón Secundario Rosa Pastel -->
-                    <button class="btn btn-pink px-4" type="button" id="btn_add_product">
-                        <i class="fa-solid fa-check ms-1"></i> Agregar
-                    </button>
+        <!-- Panel de Categorías y Productos (Touch-Friendly) -->
+        <div class="card card-custom p-4 mb-4" style="min-height: 350px;">
+            <ul class="nav nav-pills mb-3 gap-2 flex-wrap" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active rounded-pill fw-bold px-4 shadow-sm" id="pills-all-tab" data-bs-toggle="pill" data-bs-target="#pills-all" type="button" role="tab" aria-selected="true">Todos</button>
+                </li>
+                {% for cat in categorias %}
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill fw-bold px-4 shadow-sm" id="pills-{{ cat.id }}-tab" data-bs-toggle="pill" data-bs-target="#pills-{{ cat.id }}" type="button" role="tab" aria-selected="false">{{ cat.nombre }}</button>
+                </li>
+                {% endfor %}
+            </ul>
+            
+            <div class="tab-content mt-4" id="pills-tabContent">
+                <!-- Pestaña Todos -->
+                <div class="tab-pane fade show active" id="pills-all" role="tabpanel" tabindex="0">
+                    <div class="row g-3">
+                        {% for prod in productos %}
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <button class="btn btn-outline-secondary w-100 h-100 p-3 rounded-4 shadow-sm text-center d-flex flex-column align-items-center justify-content-center bg-white border-0" style="transition: all 0.2s;" onmouseover="this.classList.add('shadow')" onmouseout="this.classList.remove('shadow')" 
+                                data-id="{{ prod.id }}" 
+                                data-nombre="{{ prod.nombre }}" 
+                                data-precio-sugerido="{{ prod.precio_sugerido }}" 
+                                data-precio-minimo="{{ prod.precio_minimo }}" 
+                                data-precio-limite="{{ prod.precio_costo if current_user.rol == 'admin' else prod.precio_minimo }}" 
+                                data-sku="{{ prod.sku }}" 
+                                data-tipo="{{ prod.tipo_producto }}" 
+                                onclick="abrirModificadores(this.dataset.id, this.dataset.nombre, parseFloat(this.dataset.precioSugerido), parseFloat(this.dataset.precioMinimo), parseFloat(this.dataset.precioLimite), this.dataset.sku, this.dataset.tipo)">
+                                {% if prod.imagen %}
+                                <img src="{{ url_for('static', filename='uploads/' + prod.imagen) }}" class="img-fluid rounded-3 mb-2" style="max-height: 80px; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+                                    <i class="fa-solid fa-burger fs-3 text-brand-orange opacity-75"></i>
+                                </div>
+                                {% endif %}
+                                <span class="fw-bold text-dark d-block text-truncate w-100" style="font-size: 0.95rem;">{{ prod.nombre }}</span>
+                                <span class="badge bg-brand-yellow mt-2 p-2 rounded-pill shadow-sm">${{ "{:,.0f}".format(prod.precio_sugerido).replace(',', '.') }}</span>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
-                <button class="btn btn-outline-primary rounded-3 px-3 shadow-sm" type="button" data-bs-toggle="modal" data-bs-target="#modalProductoManual" title="Agregar producto de otro local">
-                    <i class="fa-solid fa-plus me-1"></i><i class="fa-solid fa-handshake"></i>
-                </button>
+
+                <!-- Pestañas por Categoría -->
+                {% for cat in categorias %}
+                <div class="tab-pane fade" id="pills-{{ cat.id }}" role="tabpanel" tabindex="0">
+                    <div class="row g-3">
+                        {% for prod in productos if prod.categoria_id == cat.id %}
+                        <div class="col-6 col-md-4 col-lg-3">
+                            <button class="btn btn-outline-secondary w-100 h-100 p-3 rounded-4 shadow-sm text-center d-flex flex-column align-items-center justify-content-center bg-white border-0" style="transition: all 0.2s;" onmouseover="this.classList.add('shadow')" onmouseout="this.classList.remove('shadow')" 
+                                data-id="{{ prod.id }}" 
+                                data-nombre="{{ prod.nombre }}" 
+                                data-precio-sugerido="{{ prod.precio_sugerido }}" 
+                                data-precio-minimo="{{ prod.precio_minimo }}" 
+                                data-precio-limite="{{ prod.precio_costo if current_user.rol == 'admin' else prod.precio_minimo }}" 
+                                data-sku="{{ prod.sku }}" 
+                                data-tipo="{{ prod.tipo_producto }}" 
+                                onclick="abrirModificadores(this.dataset.id, this.dataset.nombre, parseFloat(this.dataset.precioSugerido), parseFloat(this.dataset.precioMinimo), parseFloat(this.dataset.precioLimite), this.dataset.sku, this.dataset.tipo)">
+                                {% if prod.imagen %}
+                                <img src="{{ url_for('static', filename='uploads/' + prod.imagen) }}" class="img-fluid rounded-3 mb-2" style="max-height: 80px; object-fit: cover;">
+                                {% else %}
+                                <div class="bg-light rounded-circle d-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
+                                    <i class="fa-solid fa-burger fs-3 text-brand-orange opacity-75"></i>
+                                </div>
+                                {% endif %}
+                                <span class="fw-bold text-dark d-block text-truncate w-100" style="font-size: 0.95rem;">{{ prod.nombre }}</span>
+                                <span class="badge bg-brand-yellow mt-2 p-2 rounded-pill shadow-sm">${{ "{:,.0f}".format(prod.precio_sugerido).replace(',', '.') }}</span>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
             </div>
         </div>
 
@@ -46,7 +104,7 @@
                         <tr>
                             <td colspan="5" class="text-center py-5 text-muted" id="empty_cart_msg">
                                 <!-- Icono Rosa Pastel -->
-                                <i class="fa-solid fa-cart-arrow-down fs-2 mb-2 d-block text-brand-pink opacity-50"></i>
+                                <i class="fa-solid fa-cart-arrow-down fs-2 mb-2 d-block text-brand-orange opacity-50"></i>
                                 La venta está vacía actualmente.
                             </td>
                         </tr>
@@ -119,7 +177,7 @@
                 <div class="alert border-0 shadow-sm py-2 px-3 mb-3" id="saldo_restante_alert" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);">
                     <div class="d-flex justify-content-between align-items-center">
                         <small class="fw-bold text-muted text-uppercase"><i class="fa-solid fa-scale-balanced me-1"></i> Saldo por cubrir:</small>
-                        <span class="fw-bolder fs-5" id="saldo_restante" style="color: var(--brand-blue);">$0</span>
+                        <span class="fw-bolder fs-5" id="saldo_restante" style="color: var(--brand-yellow);">$0</span>
                     </div>
                     <!-- Barra de progreso visual -->
                     <div class="progress mt-2" style="height: 6px; border-radius: 10px;">
@@ -139,7 +197,7 @@
 
             <!-- Botón de Cobro Masivo Azul Turquesa -->
             <div class="d-grid gap-2 mt-4">
-                <button type="button" class="btn btn-blue btn-lg rounded-3 py-3 shadow-sm text-uppercase" id="btn_process_sale">
+                <button type="button" class="btn btn-yellow btn-lg rounded-3 py-3 shadow-sm text-uppercase" id="btn_process_sale">
                     <i class="fa-solid fa-credit-card me-2"></i> Procesar Cobro
                 </button>
                 <button type="button" class="btn btn-light mt-2 fw-bold text-muted" id="btn_clear_cart">
@@ -160,8 +218,8 @@
         to { opacity: 1; transform: translateY(0); }
     }
     .form-check-input:checked {
-        background-color: var(--brand-blue) !important;
-        border-color: var(--brand-blue) !important;
+        background-color: var(--brand-yellow) !important;
+        border-color: var(--brand-yellow) !important;
     }
     #saldo_restante_alert.saldo-cubierto {
         background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%) !important;
@@ -225,7 +283,7 @@
 <div class="modal fade" id="modalClienteCelular" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-brand-blue text-white border-0">
+            <div class="modal-header bg-brand-yellow text-white border-0">
                 <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-tag me-2"></i>Datos del Cliente</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -250,6 +308,47 @@
                 <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-success rounded-pill fw-bold px-4" onclick="confirmarVentaCelular()">
                     <i class="fa-solid fa-check me-1"></i> Confirmar Venta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modificadores / Extras -->
+<div class="modal fade" id="modalModificadores" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0 bg-light">
+                <h5 class="modal-title fw-bold text-primary" id="modificadorTitle">Personalizar Pedido</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="modProdId">
+                <input type="hidden" id="modProdSku">
+                <input type="hidden" id="modProdNombre">
+                <input type="hidden" id="modProdPrecio">
+                <input type="hidden" id="modProdMinimo">
+                <input type="hidden" id="modProdLimite">
+                <input type="hidden" id="modProdTipo">
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold text-muted">Notas Especiales / Exclusiones</label>
+                    <textarea id="modNotas" class="form-control bg-light border-0 shadow-sm" rows="3" placeholder="Ej: Sin cebolla, salsas aparte..."></textarea>
+                </div>
+
+                <div class="mb-0 d-flex align-items-center justify-content-between">
+                    <label class="form-label fw-bold text-muted mb-0">Cantidad</label>
+                    <div class="input-group shadow-sm rounded-pill overflow-hidden" style="width: 130px;">
+                        <button class="btn btn-light border-0" type="button" onclick="document.getElementById('modCantidad').value = Math.max(1, parseInt(document.getElementById('modCantidad').value)-1)"><i class="fa-solid fa-minus text-muted"></i></button>
+                        <input type="number" id="modCantidad" class="form-control text-center bg-white border-0 fw-bold fs-5" value="1" min="1">
+                        <button class="btn btn-light border-0" type="button" onclick="document.getElementById('modCantidad').value = parseInt(document.getElementById('modCantidad').value)+1"><i class="fa-solid fa-plus text-muted"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-yellow rounded-pill fw-bold px-4 shadow-sm" onclick="agregarAlCarritoDesdeModal()">
+                    <i class="fa-solid fa-plus me-1"></i> Agregar a la Orden
                 </button>
             </div>
         </div>
@@ -311,20 +410,67 @@
         { value: 'daviplata', label: '📱 Daviplata' }
     ];
 
-    // Capturar el ESCANER ("Enter" en el teclado sin enviar un formulario)
-    document.getElementById('sku_input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            buscarYAgregarProducto();
-        }
-    });
-
-    document.getElementById('btn_add_product').addEventListener('click', buscarYAgregarProducto);
     document.getElementById('btn_clear_cart').addEventListener('click', () => {
         carrito = [];
         renderizarCarrito();
         resetPagosMixtos();
     });
+
+    function abrirModificadores(id, nombre, precio, minimo, limite, sku, tipo) {
+        document.getElementById('modProdId').value = id;
+        document.getElementById('modProdNombre').value = nombre;
+        document.getElementById('modProdPrecio').value = precio;
+        document.getElementById('modProdMinimo').value = minimo;
+        document.getElementById('modProdLimite').value = limite;
+        document.getElementById('modProdSku').value = sku;
+        document.getElementById('modProdTipo').value = tipo;
+        document.getElementById('modCantidad').value = 1;
+        document.getElementById('modNotas').value = "";
+        
+        document.getElementById('modificadorTitle').innerText = "Añadir " + nombre;
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalModificadores'));
+        modal.show();
+    }
+
+    function agregarAlCarritoDesdeModal() {
+        const id = parseInt(document.getElementById('modProdId').value);
+        const nombre = document.getElementById('modProdNombre').value;
+        const precio = parseFloat(document.getElementById('modProdPrecio').value);
+        const minimo = parseFloat(document.getElementById('modProdMinimo').value);
+        const limite = parseFloat(document.getElementById('modProdLimite').value);
+        const sku = document.getElementById('modProdSku').value;
+        const tipo = document.getElementById('modProdTipo').value;
+        const notas = document.getElementById('modNotas').value.trim();
+        const cantidad = parseInt(document.getElementById('modCantidad').value);
+
+        const existenteIndex = carrito.findIndex(item => item.id === id && item.notas === notas);
+        
+        if (existenteIndex >= 0) {
+            carrito[existenteIndex].cantidad += cantidad;
+        } else {
+            carrito.push({
+                id: id,
+                sku: sku,
+                nombre: nombre,
+                tipo_inventario: tipo,
+                cantidad: cantidad,
+                precio_final: precio, 
+                precio_limite: limite,
+                precio_minimo: minimo,
+                cantidad_stock: 99999,
+                variantes: [],
+                variant_id: null,
+                es_manual: false,
+                notas: notas
+            });
+        }
+
+        const modalEl = document.getElementById('modalModificadores');
+        const modalInstance = bootstrap.Modal.getInstance(modalEl);
+        modalInstance.hide();
+        renderizarCarrito();
+    }
 
 
     // Botón para agregar producto manual (prestado de otro local)
@@ -455,7 +601,7 @@
             barraEl.style.background = 'linear-gradient(90deg, #dc3545, #e74c5c)';
             document.querySelector('#saldo_restante_alert small').innerHTML = '<i class="fa-solid fa-triangle-exclamation me-1"></i> Excedente:';
         } else {
-            saldoEl.style.color = 'var(--brand-blue)';
+            saldoEl.style.color = 'var(--brand-yellow)';
             barraEl.style.background = 'linear-gradient(90deg, #A3D8DE, #7BC8D0)';
             document.querySelector('#saldo_restante_alert small').innerHTML = '<i class="fa-solid fa-scale-balanced me-1"></i> Saldo por cubrir:';
         }
@@ -644,7 +790,7 @@
         if (carrito.length === 0) {
             tbody.innerHTML = `<tr>
                 <td colspan="5" class="text-center py-5 text-muted" id="empty_cart_msg">
-                    <i class="fa-solid fa-cart-arrow-down fs-2 mb-2 d-block text-brand-pink opacity-50"></i>
+                    <i class="fa-solid fa-cart-arrow-down fs-2 mb-2 d-block text-brand-orange opacity-50"></i>
                     La venta está vacía actualmente.
                 </td>
             </tr>`;
@@ -688,6 +834,7 @@
                     <div class="fw-bold text-brand-black">${item.nombre}</div>
                     ${skuLabel}
                     ${variantHtml}
+                    ${item.notas ? `<div class="text-danger mt-1 small fst-italic"><i class="fa-solid fa-comment-dots me-1"></i>${item.notas}</div>` : ''}
                 </td>
                 <td width="130">
                     <input type="number" class="form-control form-control-sm text-center" value="${item.cantidad}" onchange="actualizarItem(${index}, 'cantidad', this.value)">
@@ -828,7 +975,8 @@
                     product_id: item.id,
                     variant_id: item.variant_id,
                     cantidad: item.cantidad,
-                    precio_final: item.precio_final
+                    precio_final: item.precio_final,
+                    notas: item.notas || ''
                 };
                 if (item.es_manual) {
                     base.es_manual = true;
@@ -860,7 +1008,7 @@
                 
                 // Si el navegador tiene un bloqueador de ventanas emergentes muy agresivo:
                 if (!reciboWindow) {
-                    alert('⚠️ Chrome bloqueó la pestaña emergente del recibo. Por favor, permite las ventanas emergentes (pop-ups) para cases.com en la barra superior.');
+                    alert('⚠️ Chrome bloqueó la pestaña emergente del recibo. Por favor, permite las ventanas emergentes (pop-ups) para EL GOLDY en la barra superior.');
                 }
                 
                 // Alerta nativa solicitada para feedback directo (Mantiene pausada la pantalla de la Caja)

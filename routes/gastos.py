@@ -13,9 +13,9 @@ def index():
     if request.method == 'POST':
         tipo_gasto = request.form.get('tipo_gasto')
         
-        # Restricción de seguridad backend: Vendedores sólo registran gastos operativos
-        if current_user.rol != 'admin':
-            tipo_gasto = 'Gasto Diario'
+        # Validación por si el select no envía valor
+        if not tipo_gasto:
+            tipo_gasto = 'Gastos Operacionales'
             
         categoria = request.form.get('categoria')
         descripcion = request.form.get('descripcion')
@@ -80,8 +80,8 @@ def index():
         
     gastos_mes = query.order_by(Expense.fecha_gasto.desc()).all()
 
-    total_diarios = sum((g.monto for g in gastos_mes if g.tipo_gasto == 'Gasto Diario'))
-    total_indirectos = sum((g.monto for g in gastos_mes if g.tipo_gasto == 'Costo Indirecto'))
+    total_diarios = sum((g.monto for g in gastos_mes if g.tipo_gasto == 'Gastos Operacionales'))
+    total_indirectos = sum((g.monto for g in gastos_mes if g.tipo_gasto in ['Costos Indirectos', 'Costos Producto']))
 
     # Provide today's date formatted for HTML5 <input type="date">
     hoy_str = ahora.strftime('%Y-%m-%d')

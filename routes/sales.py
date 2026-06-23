@@ -13,7 +13,10 @@ sales_bp = Blueprint('sales_bp', __name__)
 @login_required # Importante: Te bloqueará el acceso si no hay current_user logeado (Flask-Login)
 def procesar_venta():
     if request.method == 'GET':
-        return render_template('sales/nueva.html')
+        from models import Categoria
+        categorias = Categoria.query.all()
+        productos = Product.query.filter(Product.tipo_producto.in_(['producto_final', 'adicional'])).all()
+        return render_template('sales/nueva.html', categorias=categorias, productos=productos)
 
     """
     Se espera que los datos vengan en el cuerpo de la petición (JSON)
@@ -50,11 +53,17 @@ def procesar_venta():
             except ValueError:
                 pass # Fallback silencioso a la hora actual si el formato falla
 
+        # Calcular número de turno (reinicia diariamente)
+        hoy_inicio = fecha_venta_obj.replace(hour=0, minute=0, second=0, microsecond=0)
+        ventas_hoy_count = Sale.query.filter(Sale.fecha_venta >= hoy_inicio).count()
+        numero_turno = ventas_hoy_count + 1
+
         nueva_venta = Sale(
             vendedor_id=current_user.id,
             monto_total=Decimal('0.00'),
             metodo_pago=metodo_pago_principal,
-            fecha_venta=fecha_venta_obj
+            fecha_venta=fecha_venta_obj,
+            numero_turno=numero_turno
         )
         db.session.add(nueva_venta)
         db.session.flush()
@@ -116,9 +125,21 @@ def procesar_venta():
                     producto.cantidad_stock -= cantidad_vendida # Sincronizar producto base
                     precio_limite_autorizado = variante.precio_costo if current_user.rol == 'admin' else variante.precio_minimo
                 else:
-                    if cantidad_vendida > producto.cantidad_stock:
-                        raise ValueError(f"Stock insuficiente para el producto '{producto.nombre}'. Solicitado: {cantidad_vendida}, Disponible: {producto.cantidad_stock}.")
-                    producto.cantidad_stock -= cantidad_vendida
+                    if producto.recetas and len(producto.recetas) > 0:
+                        # Tiene receta, descontar insumos
+                        for receta in producto.recetas:
+                            insumo = receta.insumo
+                            cantidad_a_descontar = receta.cantidad_requerida * cantidad_vendida
+                            if insumo.cantidad_stock < cantidad_a_descontar:
+                                raise ValueError(f"Stock insuficiente del insumo '{insumo.nombre}' para preparar '{producto.nombre}'.")
+                            insumo.cantidad_stock -= cantidad_a_descontar
+                        # Opcional: no descontamos el producto_final en sí si es preparado al momento, pero dejaremos que el stock del producto principal no bloquee
+                    else:
+                        # No tiene receta (ej. bebidas, adicionales o producto directo)
+                        if cantidad_vendida > producto.cantidad_stock:
+                            raise ValueError(f"Stock insuficiente para el producto '{producto.nombre}'. Solicitado: {cantidad_vendida}, Disponible: {producto.cantidad_stock}.")
+                        producto.cantidad_stock -= cantidad_vendida
+
                     precio_limite_autorizado = producto.precio_costo if current_user.rol == 'admin' else producto.precio_minimo
 
                 if precio_venta_final < precio_limite_autorizado:
@@ -129,7 +150,8 @@ def procesar_venta():
                     product_id=producto.id,
                     variant_id=variant_id,
                     cantidad_vendida=cantidad_vendida,
-                    precio_venta_final=precio_venta_final
+                    precio_venta_final=precio_venta_final,
+                    notas=item.get('notas', '')
                 )
                 db.session.add(detalle)
                 
@@ -373,7 +395,13 @@ def eliminar_venta(sale_id):
             else:
                 producto = Product.query.with_for_update().get(detalle.product_id)
                 if producto:
-                    producto.cantidad_stock += detalle.cantidad_vendida
+                    if producto.recetas and len(producto.recetas) > 0:
+                        for receta in producto.recetas:
+                            insumo = receta.insumo
+                            if insumo:
+                                insumo.cantidad_stock += (receta.cantidad_requerida * detalle.cantidad_vendida)
+                    else:
+                        producto.cantidad_stock += detalle.cantidad_vendida
                     
         # Eliminar Venta y Detalles (Cascada)
         db.session.delete(venta)
@@ -386,23 +414,4 @@ def eliminar_venta(sale_id):
         
     return redirect(url_for('sales_bp.historial'))
 
-# Endpoint Catálogo Estricto de solo vista para Operarios
-@sales_bp.route('/catalogo', methods=['GET'])
-@login_required 
-def catalogo():
-    query_str = request.args.get('q', '').strip()
-    
-    if query_str:
-        # Motor de similitud Case-Insensitive (Like)
-        search_term = f"%{query_str}%"
-        productos = Product.query.filter(Product.tipo_inventario.in_(['tienda', 'celulares'])).filter(
-            or_(
-                Product.sku.ilike(search_term), 
-                Product.nombre.ilike(search_term)
-            )
-        ).limit(50).all()
-    else:
-        # Límite pasivo de 50 ítems para ahorrar memoria RAM de BD en carga inicial
-        productos = Product.query.filter(Product.tipo_inventario.in_(['tienda', 'celulares'])).limit(50).all()
-        
-    return render_template('sales/catalogo.html', productos=productos, q=query_str)
+

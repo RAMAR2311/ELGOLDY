@@ -31,7 +31,7 @@
                         {{ ajuste.fecha_ajuste.strftime('%Y-%m-%d %H:%M') }}
                     </td>
                     <td class="fw-semibold text-brand-black">
-                        <i class="fa-solid fa-user-shield text-brand-pink me-1"></i> {{ ajuste.admin.nombre }}
+                        <i class="fa-solid fa-user-shield text-brand-orange me-1"></i> {{ ajuste.admin.nombre }}
                     </td>
                     <td>
                         <span class="text-brand-black">{{ ajuste.producto_rel.nombre }}</span>
@@ -42,7 +42,7 @@
                         <span class="badge bg-secondary rounded-pill px-3 py-2">{{ ajuste.stock_anterior }}</span>
                     </td>
                     <td class="text-center">
-                        <span class="badge bg-brand-pink text-dark rounded-pill px-3 py-2 border">{{ ajuste.stock_nuevo }}</span>
+                        <span class="badge bg-brand-orange text-dark rounded-pill px-3 py-2 border">{{ ajuste.stock_nuevo }}</span>
                     </td>
                     <td class="text-center pe-4">
                         {% set diferencia = ajuste.stock_nuevo - ajuste.stock_anterior %}
@@ -58,7 +58,7 @@
                 {% else %}
                 <tr>
                     <td colspan="6" class="text-center py-5 text-muted">
-                        <i class="fa-solid fa-clock-rotate-left fs-1 mb-3 text-brand-pink"></i>
+                        <i class="fa-solid fa-clock-rotate-left fs-1 mb-3 text-brand-orange"></i>
                         <p class="mb-0">No hay registros de ajustes de inventario.</p>
                     </td>
                 </tr>

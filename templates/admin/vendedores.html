@@ -3,8 +3,8 @@
 {% block content %}
 <div class="row mb-5">
     <div class="col-12 d-flex justify-content-between align-items-center">
-        <!-- Título con acento Azul Turquesa según reglas de Branding (.text-brand-blue es #A3D8DE) -->
-        <h2 class="fw-bolder m-0" style="color: var(--brand-blue);">
+        <!-- Título con acento Azul Turquesa según reglas de Branding (.text-brand-yellow es #A3D8DE) -->
+        <h2 class="fw-bolder m-0" style="color: var(--brand-yellow);">
             <i class="fa-solid fa-users-gear me-2"></i>Gestión de Personal
         </h2>
         <a href="/admin/dashboard" class="btn btn-light rounded-pill px-4 fw-bold text-muted border shadow-sm">
@@ -17,7 +17,7 @@
     <!-- Columna Izquierda: Formulario (Card en Blanco Sólido) -->
     <div class="col-md-4">
         <div class="card card-custom p-4 h-100">
-            <h5 class="fw-bold text-brand-black mb-4"><i class="fa-solid fa-id-badge me-2 text-brand-pink"></i> Alta de Nuevo Vendedor</h5>
+            <h5 class="fw-bold text-brand-black mb-4"><i class="fa-solid fa-id-badge me-2 text-brand-orange"></i> Alta de Nuevo Vendedor</h5>
             <form method="POST">
                 <!-- Autenticador Estricto para el Servidor Jinja -->
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -29,7 +29,7 @@
                 
                 <div class="mb-3">
                     <label class="form-label text-brand-black fw-semibold small">Correo Empresarial (Login)</label>
-                    <input type="email" name="email" class="form-control bg-light border-0 py-2" required placeholder="ventas@cases.com">
+                    <input type="email" name="email" class="form-control bg-light border-0 py-2" required placeholder="ventas@elgoldy.com">
                 </div>
                 
                 <div class="mb-3">
@@ -53,7 +53,7 @@
                 
                 <div class="d-grid mt-auto">
                     <!-- Sólida Llamada a la Acción (Azul Turquesa según Identidad Gráfica) -->
-                    <button type="submit" class="btn btn-blue py-3 fw-bold text-brand-black rounded-3 shadow-sm text-uppercase">
+                    <button type="submit" class="btn btn-yellow py-3 fw-bold text-brand-black rounded-3 shadow-sm text-uppercase">
                         <i class="fa-solid fa-user-plus me-1"></i> Otorgar Acceso
                     </button>
                 </div>

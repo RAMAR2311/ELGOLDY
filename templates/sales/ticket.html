@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ticket de Compra #{{ venta.id }} - cases.com</title>
+    <title>Ticket de Compra #{{ venta.id }} - EL GOLDY</title>
     <!-- Incluir solo la fuente base "Roboto Mono" (Letra de ticketera 80mm) -->
     <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -128,7 +128,12 @@
 
 <div class="ticket">
     <div class="header">
-        <h1 class="logo">cases.com</h1>
+        <h1 class="logo">EL GOLDY</h1>
+        {% if venta.numero_turno %}
+        <div style="font-size: 2.5rem; font-weight: bold; margin: 15px 0; border: 2px solid #1A1A1A; padding: 10px; border-radius: 8px; text-align: center;">
+            TURNO #{{ '%03d' | format(venta.numero_turno) }}
+        </div>
+        {% endif %}
         <p class="info">Folio / Ticket: #{{ venta.id }}</p>
         <p class="info">Expedido: {{ venta.fecha_venta.strftime('%d/%m/%Y %H:%M') }}</p>
         <p class="info">Cajero Asignado: {{ venta.vendedor.nombre }}</p>
@@ -164,6 +169,9 @@
                         {% if detalle.variante %}
                             <br><small style="font-size: 0.75rem;">{{ detalle.variante.nombre_variante }}</small>
                         {% endif %}
+                        {% if detalle.notas %}
+                            <br><small style="font-size: 0.75rem; font-style: italic; font-weight: bold;">* {{ detalle.notas }}</small>
+                        {% endif %}
                     {% endif %}
                 </td>
                 <td class="col-sub">${{ (detalle.precio_venta_final * detalle.cantidad_vendida)|cop }}</td>
@@ -195,7 +203,7 @@
     <div class="footer">
         <p style="font-size: 1rem; font-weight: bold;">¡Gracias por tu compra!</p>
         <p>Políticas de Tienda: Devoluciones únicamente presentando ticket impreso o digital.</p>
-        <p>Soporte: ventas@cases.com</p>
+        <p>Soporte: info@elgoldy.com</p>
     </div>
 
     <button class="btn-print" onclick="window.print()">

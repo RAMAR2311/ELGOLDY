@@ -15,7 +15,7 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-super-secreta')
     
     # Para la conexión a PostgreSQL, psycopg2 es el default de SQLALchemy al usar postgresql://
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:admin123@localhost:5432/crm_cases')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:admin123@localhost:5432/el_goldy')
     
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = 'static/uploads'
@@ -50,13 +50,8 @@ def create_app():
     from routes.admin import admin_bp
     app.register_blueprint(admin_bp, url_prefix='/admin')
 
-    # Registro de Blueprint Bodega
-    from routes.bodega import bodega_bp
-    app.register_blueprint(bodega_bp, url_prefix='/bodega')
 
-    # Registro de Blueprint Celulares
-    from routes.celulares import celulares_bp
-    app.register_blueprint(celulares_bp, url_prefix='/celulares')
+
 
 
     @app.template_filter('cop')
@@ -78,9 +73,7 @@ def create_app():
         if current_user.rol == 'admin':
             return redirect(url_for('admin_bp.dashboard'))
             
-        if current_user.rol == 'bodega' or current_user.rol == 'vendedor_bodega':
-            return redirect(url_for('bodega_bp.dashboard'))
-            
+
         # Por defecto, Vendedores van directo a Cajas
         return redirect(url_for('sales_bp.procesar_venta'))
 
@@ -101,15 +94,15 @@ if __name__ == '__main__':
         os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
         
         # Verificamos e instanciamos al Administrador si no existe
-        if not User.query.filter_by(email='admin@cases.com').first():
+        if not User.query.filter_by(email='admin@elgoldy.com').first():
             master_admin = User(
                 nombre='Administrador Principal',
-                email='admin@cases.com',
+                email='admin@elgoldy.com',
                 password_hash=generate_password_hash('Admin123'),
                 rol='admin' # Rol dictaminado por los requerimientos
             )
             db.session.add(master_admin)
             db.session.commit()
-            print("🚀 [INFO] Usuario maestro 'admin@cases.com' fue creado automáticamente.")
+            print("🚀 [INFO] Usuario maestro 'admin@elgoldy.com' fue creado automáticamente.")
             
     app.run(debug=True)

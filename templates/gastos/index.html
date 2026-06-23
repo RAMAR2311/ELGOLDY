@@ -11,20 +11,20 @@
 <!-- Tarjetas de Resumen Financiero -->
 <div class="row g-4 mb-4">
     <div class="col-md-6">
-        <div class="card card-custom h-100 p-4 border-0 shadow-sm" style="border-left: 5px solid var(--brand-blue) !important;">
+        <div class="card card-custom h-100 p-4 border-0 shadow-sm" style="border-left: 5px solid var(--brand-yellow) !important;">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="text-brand-black fw-bold mb-0">Total Gastos Diarios (Mes)</h5>
-                <i class="fa-solid fa-cart-shopping fs-2" style="color: var(--brand-blue);"></i>
+                <i class="fa-solid fa-cart-shopping fs-2" style="color: var(--brand-yellow);"></i>
             </div>
             <h2 class="fw-bolder m-0">${{ (total_diarios)|cop }}</h2>
             <p class="text-muted small mt-2 m-0">Operativos: comida, transportes, aseo.</p>
         </div>
     </div>
     <div class="col-md-6">
-        <div class="card card-custom h-100 p-4 border-0 shadow-sm" style="border-left: 5px solid var(--brand-pink) !important;">
+        <div class="card card-custom h-100 p-4 border-0 shadow-sm" style="border-left: 5px solid var(--brand-orange) !important;">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="text-brand-black fw-bold mb-0">Total Costos Indirectos (Mes)</h5>
-                <i class="fa-solid fa-building-columns fs-2" style="color: var(--brand-pink);"></i>
+                <i class="fa-solid fa-building-columns fs-2" style="color: var(--brand-orange);"></i>
             </div>
             <h2 class="fw-bolder m-0">${{ (total_indirectos)|cop }}</h2>
             <p class="text-muted small mt-2 m-0">Fijos: arriendo, nómina, servicios.</p>
@@ -34,20 +34,17 @@
 
 <!-- Formulario para Registrar Nuevo Gasto -->
 <div class="card card-custom p-4 mb-5 shadow-sm border-0">
-    <h5 class="text-brand-black fw-bold mb-4"><i class="fa-solid fa-money-bill-transfer text-brand-blue me-2"></i>Registrar Salida de Dinero</h5>
+    <h5 class="text-brand-black fw-bold mb-4"><i class="fa-solid fa-money-bill-transfer text-brand-yellow me-2"></i>Registrar Salida de Dinero</h5>
     <form method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="row g-3 align-items-end">
             <div class="col-md-3">
                 <label class="form-label fw-bold text-brand-black">Tipo de Salida</label>
                 <select name="tipo_gasto" class="form-select bg-light border-0" required>
-                    {% if current_user.rol == 'admin' %}
                     <option value="" selected disabled>Seleccionar tipo...</option>
-                    <option value="Gasto Diario">Gasto Diario / Operativo</option>
-                    <option value="Costo Indirecto">Costo Indirecto / Fijo</option>
-                    {% else %}
-                    <option value="Gasto Diario" selected>Gasto Diario / Operativo</option>
-                    {% endif %}
+                    <option value="Gastos Operacionales">Gastos Operacionales</option>
+                    <option value="Costos Producto">Costos Producto</option>
+                    <option value="Costos Indirectos">Costos Indirectos</option>
                 </select>
             </div>
             <div class="col-md-3">
@@ -96,7 +93,7 @@
                 <input type="text" name="descripcion" class="form-control bg-light border-0" placeholder="Breve detalle del gasto..." required>
             </div>
             <div class="col-md-2 mt-3 text-end">
-                <button type="submit" class="btn btn-blue w-100 rounded-pill fw-bold h-100 py-2"><i class="fa-solid fa-plus me-1"></i> Guardar</button>
+                <button type="submit" class="btn btn-yellow w-100 rounded-pill fw-bold h-100 py-2"><i class="fa-solid fa-plus me-1"></i> Guardar</button>
             </div>
         </div>
     </form>
@@ -126,10 +123,12 @@
                     <td class="ps-4 text-muted"><small>{{ gasto.fecha_gasto.strftime('%d/%m/%Y') }}</small></td>
                     <td><span class="text-brand-black fw-semibold"><i class="fa-solid fa-user-tie text-muted me-1"></i>{{ gasto.usuario.nombre }}</span></td>
                     <td>
-                        {% if gasto.tipo_gasto == 'Gasto Diario' %}
-                            <span class="badge rounded-pill text-dark" style="background-color: var(--brand-blue);">{{ gasto.tipo_gasto }}</span>
+                        {% if gasto.tipo_gasto == 'Gastos Operacionales' %}
+                            <span class="badge rounded-pill text-dark" style="background-color: var(--brand-yellow);">{{ gasto.tipo_gasto }}</span>
+                        {% elif gasto.tipo_gasto == 'Costos Producto' %}
+                            <span class="badge rounded-pill text-dark" style="background-color: var(--brand-orange);">{{ gasto.tipo_gasto }}</span>
                         {% else %}
-                            <span class="badge rounded-pill text-dark" style="background-color: var(--brand-pink);">{{ gasto.tipo_gasto }}</span>
+                            <span class="badge rounded-pill text-light bg-dark">{{ gasto.tipo_gasto }}</span>
                         {% endif %}
                     </td>
                     <td class="fw-bold">{{ gasto.categoria }}</td>
@@ -199,7 +198,7 @@
                 {% else %}
                 <tr>
                     <td colspan="{{ 7 if current_user.rol == 'admin' else 6 }}" class="text-center py-5 text-muted">
-                        <i class="fa-solid fa-wallet fs-2 mb-3 text-brand-blue opacity-50"></i>
+                        <i class="fa-solid fa-wallet fs-2 mb-3 text-brand-yellow opacity-50"></i>
                         <p class="mb-0">No se han registrado salidas de dinero este mes.</p>
                     </td>
                 </tr>

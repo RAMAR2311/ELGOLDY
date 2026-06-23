@@ -13,19 +13,24 @@ inventory_bp = Blueprint('inventory_bp', __name__)
 @login_required
 @admin_or_bodega_required
 def index():
-    tipo = 'bodega' if current_user.rol == 'bodega' else 'tienda'
     page = request.args.get('page', 1, type=int)
     per_page = 20
 
+    tipo_filtro = request.args.get('tipo', 'insumo')
+    
+    query = Product.query
+    if tipo_filtro != 'todos':
+        query = query.filter_by(tipo_producto=tipo_filtro)
+
     # Paginación del listado principal
-    paginacion = Product.query.filter_by(tipo_inventario=tipo).order_by(Product.nombre).paginate(
+    paginacion = query.order_by(Product.nombre).paginate(
         page=page, per_page=per_page, error_out=False
     )
     productos = paginacion.items
 
     # --- KPIs de Inventario ---
-    # Se calcula sobre TODO el inventario (no solo la página actual)
-    todos = Product.query.filter_by(tipo_inventario=tipo).all()
+    # Se calcula sobre los productos filtrados
+    todos = query.all()
     total_productos = len(todos)
 
     valor_costo = 0.0
@@ -52,6 +57,7 @@ def index():
         total_productos=total_productos,
         valor_costo=valor_costo,
         valor_sugerido=valor_sugerido,
+        tipo_filtro=tipo_filtro,
     )
 
 @inventory_bp.route('/nuevo', methods=['GET', 'POST'])
@@ -68,9 +74,6 @@ def nuevo():
                 file.save(os.path.join(current_app.config['UPLOAD_FOLDER'], filename))
                 imagen_filename = filename
 
-        # La instanciación agrupa todos los parámetros del nuevo producto
-        tipo = 'bodega' if current_user.rol == 'bodega' else 'tienda'
-        
         # Recibir variantes
         v_nombres = request.form.getlist('v_nombre[]')
         v_stocks = request.form.getlist('v_stock[]')
@@ -81,10 +84,13 @@ def nuevo():
         # Si hay variantes, el stock base del producto maestro se ignora o se pone en 0
         stock_base = 0 if v_nombres else int(request.form.get('cantidad_stock', 0))
 
+        cat_id = request.form.get('categoria_id')
+
         nuevo_prod = Product(
             sku=request.form.get('sku').strip(),
             nombre=request.form.get('nombre').strip(),
-            tipo_inventario=tipo,
+            tipo_producto=request.form.get('tipo_producto', 'producto_final'),
+            categoria_id=int(cat_id) if cat_id else None,
             cantidad_stock=stock_base,
             precio_costo=float(request.form.get('precio_costo', 0.0)),
             precio_minimo=float(request.form.get('precio_minimo', 0.0)),
@@ -137,9 +143,6 @@ def nuevo():
 def editar_producto(id):
     # get_or_404 protege la ruta en caso de que se envíe un ID inexistente en la URL
     producto = Product.query.get_or_404(id)
-    tipo = 'bodega' if current_user.rol == 'bodega' else 'tienda'
-    if producto.tipo_inventario != tipo:
-        abort(403)
     
     if request.method == 'POST':
         stock_total_anterior = producto.total_stock
@@ -153,8 +156,11 @@ def editar_producto(id):
                 producto.imagen = filename
                 
         # Datos básicos
+        cat_id = request.form.get('categoria_id')
         producto.sku = request.form.get('sku').strip()
         producto.nombre = request.form.get('nombre').strip()
+        producto.tipo_producto = request.form.get('tipo_producto', 'producto_final')
+        producto.categoria_id = int(cat_id) if cat_id else None
         producto.precio_costo = float(request.form.get('precio_costo', 0.0))
         producto.precio_minimo = float(request.form.get('precio_minimo', 0.0))
         producto.precio_sugerido = float(request.form.get('precio_sugerido', 0.0))
@@ -235,15 +241,16 @@ def editar_producto(id):
             db.session.rollback()
             flash(f'Error en la base de datos: {str(e)}', 'danger')
 
+    from models import Categoria
+    categorias = Categoria.query.all()
     # El objeto producto se pasa a Jinja para auto-poblar (pre-llenar) el formulario en modo edición
-    return render_template('inventory/form.html', producto=producto)
+    return render_template('inventory/form.html', producto=producto, categorias=categorias)
 
 @inventory_bp.route('/historial-ajustes')
 @login_required
 @admin_or_bodega_required
 def historial_ajustes():
-    tipo = 'bodega' if current_user.rol == 'bodega' else 'tienda'
-    ajustes = StockAdjustment.query.join(Product).filter(Product.tipo_inventario == tipo).order_by(StockAdjustment.fecha_ajuste.desc()).all()
+    ajustes = StockAdjustment.query.join(Product).order_by(StockAdjustment.fecha_ajuste.desc()).all()
     return render_template('inventory/historial_ajustes.html', ajustes=ajustes)
 
 @inventory_bp.route('/ver/<int:id>', methods=['GET'])
@@ -251,35 +258,52 @@ def historial_ajustes():
 @admin_or_bodega_required
 def ver_producto(id):
     producto = Product.query.get_or_404(id)
-    tipo = 'bodega' if current_user.rol == 'bodega' else 'tienda'
-    if producto.tipo_inventario != tipo:
-        abort(403)
     ajustes = StockAdjustment.query.filter_by(product_id=id).order_by(StockAdjustment.fecha_ajuste.desc()).all()
     return render_template('inventory/ver.html', producto=producto, ajustes=ajustes)
+
+@inventory_bp.route('/ajuste_stock/<int:id>', methods=['POST'])
+@login_required
+@admin_or_bodega_required
+def ajuste_stock(id):
+    producto = Product.query.get_or_404(id)
+    cantidad_str = request.form.get('cantidad', '0')
+    try:
+        cantidad = int(cantidad_str)
+    except ValueError:
+        cantidad = 0
+        
+    observacion = request.form.get('observacion', '')
+    
+    if cantidad > 0:
+        ajuste = StockAdjustment(
+            product_id=producto.id,
+            admin_id=current_user.id,
+            tipo_movimiento='Ingreso Manual',
+            stock_anterior=producto.cantidad_stock,
+            stock_nuevo=producto.cantidad_stock + cantidad
+        )
+        producto.cantidad_stock += cantidad
+        if observacion:
+            producto.observacion = observacion
+        db.session.add(ajuste)
+        db.session.commit()
+        flash(f'Ingreso registrado: se agregaron {cantidad} unidades.', 'success')
+    else:
+        flash('La cantidad a ingresar debe ser mayor a 0.', 'warning')
+        
+    return redirect(url_for('inventory_bp.ver_producto', id=producto.id))
 
 @inventory_bp.route('/eliminar/<int:id>', methods=['POST'])
 @login_required
 @admin_or_bodega_required
 def eliminar_producto(id):
     producto = Product.query.get_or_404(id)
-    tipo = 'bodega' if current_user.rol == 'bodega' else 'tienda'
-    
-    if producto.tipo_inventario != tipo:
-        abort(403)
         
-    from models import SaleDetail, Maneo, FacturaBodegaDetalle
+    from models import SaleDetail
     
     # 1. Validación de seguridad en cascada (No eliminar lo que tiene historia financiera/logística)
     if SaleDetail.query.filter_by(product_id=producto.id).first():
         flash('Acción denegada: El producto ya está vinculado a Historial de Ventas. Sugerencia: Ajustar stock a 0.', 'warning')
-        return redirect(url_for('inventory_bp.index'))
-        
-    if Maneo.query.filter_by(product_id=producto.id).first():
-        flash('Acción denegada: El producto tiene registros históticos en Maneos (Préstamos).', 'warning')
-        return redirect(url_for('inventory_bp.index'))
-        
-    if FacturaBodegaDetalle.query.filter_by(producto_id=producto.id).first():
-        flash('Acción denegada: El producto forma parte del detalle de una Factura Asignada.', 'warning')
         return redirect(url_for('inventory_bp.index'))
         
     try:
@@ -437,7 +461,6 @@ def importar_inventario():
         if 'subcategoria' not in df.columns:
             df['subcategoria'] = ''
             
-        tipo = 'bodega' if current_user.rol == 'bodega' else 'tienda'
         creados = 0
         actualizados = 0
         
@@ -460,7 +483,7 @@ def importar_inventario():
             if obs_val.lower() == 'nan':
                 obs_val = ''
 
-            prod = Product.query.filter_by(sku=sku_raw, tipo_inventario=tipo).first()
+            prod = Product.query.filter_by(sku=sku_raw).first()
             
             if prod:
                 # Si EXISTE el producto padre
@@ -530,7 +553,7 @@ def importar_inventario():
                 nuevo_prod = Product(
                     sku=sku_raw,
                     nombre=nombre_val,
-                    tipo_inventario=tipo,
+                    tipo_producto='producto_final',
                     cantidad_stock=cant if not subcat_val else 0, # Si provee subcat, todo el stock se va a la subcat
                     precio_costo=costo,
                     precio_minimo=minimo,
@@ -585,13 +608,12 @@ def importar_inventario():
 @admin_or_bodega_required
 def api_search():
     query = request.args.get('q', '').strip()
-    tipo = 'bodega' if current_user.rol == 'bodega' else 'tienda'
     
     if len(query) < 2:
         return jsonify([])
     
     from sqlalchemy import or_
-    productos = Product.query.filter_by(tipo_inventario=tipo).filter(
+    productos = Product.query.filter(
         or_(
             Product.sku.ilike(f'%{query}%'),
             Product.nombre.ilike(f'%{query}%')

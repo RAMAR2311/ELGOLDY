@@ -7,8 +7,11 @@
             <i class="fa-solid fa-arrow-left"></i>
         </a>
         <h2 class="fw-bold text-brand-black mb-0">Detalle de Producto: <span class="text-muted">{{ producto.sku }}</span></h2>
-        <div class="ms-auto">
-            <a href="{{ url_for('inventory_bp.editar_producto', id=producto.id) }}" class="btn btn-blue rounded-pill px-4">
+        <div class="ms-auto d-flex gap-2">
+            <button class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#ingresoModal">
+                <i class="fa-solid fa-plus-circle me-1"></i>Ingresar Producto
+            </button>
+            <a href="{{ url_for('inventory_bp.editar_producto', id=producto.id) }}" class="btn btn-yellow rounded-pill px-4">
                 <i class="fa-solid fa-pen me-2"></i>Editar Producto
             </a>
         </div>
@@ -61,7 +64,7 @@
                 
                 {% if producto.observacion %}
                 <div class="text-start mt-4 pt-4 border-top">
-                    <h6 class="fw-bold text-brand-pink mb-3"><i class="fa-solid fa-note-sticky me-2"></i>Observaciones</h6>
+                    <h6 class="fw-bold text-brand-orange mb-3"><i class="fa-solid fa-note-sticky me-2"></i>Observaciones</h6>
                     <div class="p-3 bg-light rounded text-muted small lh-base border border-light shadow-sm">
                         {{ producto.observacion }}
                     </div>
@@ -79,7 +82,7 @@
         <div class="col-lg-8">
             <div class="card card-custom border-0 shadow-sm overflow-hidden h-100">
                 <div class="card-header bg-white border-bottom p-4 pb-3">
-                    <h5 class="fw-bold text-brand-black mb-0"><i class="fa-solid fa-clock-rotate-left text-brand-pink me-2"></i>Trazabilidad de Inventario</h5>
+                    <h5 class="fw-bold text-brand-black mb-0"><i class="fa-solid fa-clock-rotate-left text-brand-orange me-2"></i>Trazabilidad de Inventario</h5>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -124,7 +127,7 @@
                                 {% else %}
                                 <tr>
                                     <td colspan="6" class="text-center py-5 text-muted">
-                                        <i class="fa-solid fa-box-open fs-2 mb-3 text-brand-pink"></i>
+                                        <i class="fa-solid fa-box-open fs-2 mb-3 text-brand-orange"></i>
                                         <p class="mb-0">No hay movimientos registrados para este producto.</p>
                                     </td>
                                 </tr>
@@ -134,6 +137,42 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Ingreso de Producto -->
+<div class="modal fade" id="ingresoModal" tabindex="-1" aria-labelledby="ingresoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="POST" action="{{ url_for('inventory_bp.ajuste_stock', id=producto.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header border-0 bg-light">
+                    <h5 class="modal-title fw-bold text-success" id="ingresoModalLabel">
+                        <i class="fa-solid fa-plus-circle me-2"></i>Ingreso de Inventario
+                    </h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-start">
+                    <p class="mb-4 text-muted">Añadirás nuevas unidades al stock de <strong>{{ producto.nombre }}</strong>. Esta acción quedará registrada en la trazabilidad.</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Cantidad a ingresar</label>
+                        <input type="number" name="cantidad" class="form-control form-control-lg bg-light border-0 shadow-sm" min="1" placeholder="Ej: 50" required>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <label class="form-label fw-bold text-muted" style="font-size: 0.9rem;">Observaciones de Ingreso (Opcional)</label>
+                        <textarea name="observacion" class="form-control bg-light border-0 shadow-sm" rows="2" placeholder="Ej: Recibido de proveedor local..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light rounded-bottom">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success rounded-pill fw-bold px-4 shadow-sm">
+                        Confirmar Ingreso
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

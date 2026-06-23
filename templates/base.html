@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>cases.com - CRM & POS</title>
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/cases.png') }}">
+    <title>EL GOLDY - CRM & POS</title>
+
     <!-- Bootstrap 5 CDN -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- FontAwesome -->
@@ -13,12 +12,12 @@
     <style>
         /* REGLA DE BRANDING ESTRICTA Y COLORES */
         :root {
-            --brand-pink: #F9C8D3;   /* Rosa Pastel */
-            --brand-blue: #A3D8DE;   /* Azul Turquesa */
-            --brand-black: #1A1A1A;  /* Negro */
+            --brand-orange: #FF8C00; /* Naranja Hot Dog */
+            --brand-yellow: #FFC107; /* Amarillo Mostaza */
+            --brand-black: #111111;  /* Negro */
             --brand-white: #FFFFFF;  /* Blanco */
             
-            --brand-bg: #F8F9FA;     /* Fondo gris súper claro para dar profundidad al blanco */
+            --brand-bg: #F8F9FA;     /* Fondo claro */
         }
 
         body {
@@ -29,62 +28,68 @@
         }
 
         /* Variables Utilitarias */
-        .bg-brand-blue { background-color: var(--brand-blue) !important; color: var(--brand-black); }
-        .bg-brand-pink { background-color: var(--brand-pink) !important; color: var(--brand-black); }
+        .bg-brand-yellow { background-color: var(--brand-yellow) !important; color: var(--brand-black); }
+        .bg-brand-orange { background-color: var(--brand-orange) !important; color: var(--brand-black); }
         .bg-brand-white { background-color: var(--brand-white) !important; }
         .text-brand-black { color: var(--brand-black) !important; }
-        .text-brand-pink { color: var(--brand-pink) !important; }
+        .text-brand-orange { color: var(--brand-orange) !important; }
 
-        /* Navbar E-commerce Vibe (Ahora en Rosa Pastel) */
+        /* Navbar E-commerce Vibe */
         .navbar-custom {
-            background-color: var(--brand-pink);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            background-color: var(--brand-black);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
             padding: 1rem 0;
+            border-bottom: 4px solid var(--brand-orange);
         }
         
         .navbar-custom .navbar-brand {
-            font-weight: 800;
-            color: var(--brand-black);
-            font-size: 1.75rem;
-            letter-spacing: -0.5px;
+            font-weight: 900;
+            color: var(--brand-white);
+            font-size: 2rem;
+            letter-spacing: -1px;
+            text-transform: uppercase;
+        }
+        .navbar-custom .navbar-brand span {
+            color: var(--brand-orange);
         }
 
-        .navbar-custom .nav-link {
-            color: var(--brand-black);
+        .navbar-custom .nav-link, .navbar-custom .fa-bars {
+            color: var(--brand-white) !important;
             font-weight: 500;
-            margin-left: 1rem;
             transition: opacity 0.2s;
         }
 
-        .navbar-custom .nav-link:hover {
+        .navbar-custom .nav-link:hover, .navbar-custom .fa-bars:hover {
             opacity: 0.7;
         }
 
         /* Botones Pro */
-        .btn-pink {
-            background-color: var(--brand-pink);
-            color: var(--brand-black);
-            font-weight: 600;
+        .btn-orange {
+            background-color: var(--brand-orange);
+            color: var(--brand-white);
+            font-weight: 700;
             border: none;
             transition: all 0.2s ease-in-out;
         }
-        .btn-pink:hover {
-            background-color: #f0aebb;
+        .btn-orange:hover {
+            background-color: #E65100;
+            color: var(--brand-white);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(249, 200, 211, 0.4);
+            box-shadow: 0 6px 15px rgba(255, 140, 0, 0.4);
         }
 
-        .btn-blue {
-            background-color: var(--brand-blue);
+        .btn-yellow {
+            background-color: var(--brand-yellow);
             color: var(--brand-black);
-            font-weight: 600;
+            font-weight: 700;
             border: none;
             transition: all 0.2s ease-in-out;
         }
-        .btn-blue:hover {
-            background-color: #8bc3c9;
+        .btn-yellow:hover {
+            background-color: #FFB300;
+            color: var(--brand-black);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(163, 216, 222, 0.4);
+            box-shadow: 0 6px 15px rgba(255, 193, 7, 0.4);
         }
 
         /* Superficies Claras y Limpias */
@@ -103,7 +108,7 @@
         .table-custom thead th {
             color: var(--brand-black);
             /* Borde inferior de la tabla ahora en rosa pastel para hacer juego con el navbar */
-            border-bottom: 2px solid var(--brand-pink);
+            border-bottom: 2px solid var(--brand-orange);
             text-transform: uppercase;
             font-size: 0.75rem;
             letter-spacing: 0.5px;
@@ -119,46 +124,42 @@
             transition: all 0.2s ease-in-out;
         }
         .offcanvas-body .nav-link:hover {
-            background-color: rgba(163, 216, 222, 0.15); /* bg-brand-blue transparente */
+            background-color: rgba(163, 216, 222, 0.15); /* bg-brand-yellow transparente */
             transform: translateX(4px);
-            border-left: 3px solid var(--brand-pink) !important;
+            border-left: 3px solid var(--brand-orange) !important;
         }
     </style>
 </head>
 <body>
-    <!-- Navbar cases.com -->
+    <!-- Navbar EL GOLDY -->
     <nav class="navbar navbar-custom mb-5 position-relative">
-        <div class="container-fluid px-3 d-flex justify-content-between align-items-center">
+        <div class="container-fluid px-3 d-flex align-items-center">
             
             {% if current_user.is_authenticated %}
             <!-- Botón Hamburguesa (Izquierda) -->
-            <button class="navbar-toggler border-0 shadow-none p-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
-                <i class="fa-solid fa-bars fs-3 text-brand-black"></i>
+            <button class="navbar-toggler border-0 shadow-none p-2 me-3" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="#FFFFFF" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
+                </svg>
             </button>
-            {% else %}
-            <!-- Spacer if not authenticated -->
-            <div style="width: 40px;"></div>
             {% endif %}
 
-            <!-- Brand Logo (Centro) -->
-            <a class="navbar-brand d-flex align-items-center fw-bold m-0 position-absolute start-50 translate-middle-x" href="{{ url_for('index') }}">
-                <img src="{{ url_for('static', filename='img/cases.png') }}" alt="cases.com" style="height: 38px; width: auto; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));" class="me-2">
-                cases.com
+            <!-- Brand Logo y Texto (Izquierda) -->
+            <a class="navbar-brand d-flex align-items-center fw-bold m-0" href="{{ url_for('index') }}" style="text-decoration: none;">
+                <img src="{{ url_for('static', filename='img/logo.jpg') }}" alt="Logo El Goldy" class="me-3" style="height: 50px; border-radius: 6px; box-shadow: 0 0 10px rgba(255,140,0,0.5);">
+                <span class="text-white fs-3" style="letter-spacing: -1px;">HOT <span style="color: var(--brand-orange);">DOGS</span> <small class="text-white-50 ms-1" style="font-size: 1rem; font-weight: normal; letter-spacing: 0;">El Goldy</small></span>
             </a>
-
-            <!-- Spacer derecho para equilibrar flex -->
-            <div style="width: 40px;"></div>
         </div>
     </nav>
 
     {% if current_user.is_authenticated %}
     <!-- Offcanvas Menú Lateral (Sidebar) -->
     <div class="offcanvas offcanvas-start border-0 shadow" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel" style="width: 280px;">
-        <div class="offcanvas-header bg-brand-pink border-bottom">
-            <h5 class="offcanvas-title fw-bold text-brand-black" id="offcanvasNavbarLabel">
-                <i class="fa-solid fa-user-circle me-2"></i>{{ current_user.rol | capitalize }}
+        <div class="offcanvas-header bg-brand-black border-bottom" style="border-bottom: 3px solid var(--brand-orange) !important;">
+            <h5 class="offcanvas-title fw-bold text-white" id="offcanvasNavbarLabel">
+                <i class="fa-solid fa-user-circle me-2" style="color: var(--brand-orange);"></i>{{ current_user.rol | capitalize }}
             </h5>
-            <button type="button" class="btn-close shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white shadow-none" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body d-flex flex-column p-0">
             <ul class="navbar-nav w-100 mb-auto px-3 py-3 gap-2">
@@ -170,16 +171,7 @@
                     <li class="nav-item">
                         <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/inventory"><i class="fa-solid fa-box text-muted me-2" style="width:20px; text-align:center;"></i> Inventario Tienda</a>
                     </li>
-                    <!-- Módulo Celulares Independiente -->
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('celulares_bp.inventario') }}"><i class="fa-solid fa-mobile-screen-button text-brand-blue me-2" style="width:20px; text-align:center;"></i> Inventario Celulares</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('celulares_bp.historial_ventas') }}"><i class="fa-solid fa-clock-rotate-left text-brand-pink me-2" style="width:20px; text-align:center;"></i> Historial Celulares</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('celulares_bp.clientes') }}"><i class="fa-solid fa-users text-success me-2" style="width:20px; text-align:center;"></i> Clientes Celulares</a>
-                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/sales/nueva"><i class="fa-solid fa-cash-register text-muted me-2" style="width:20px; text-align:center;"></i> Caja Terminal</a>
                     </li>
@@ -187,71 +179,29 @@
                         <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/admin/vendedores"><i class="fa-solid fa-users text-muted me-2" style="width:20px; text-align:center;"></i> Personal</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/gastos"><i class="fa-solid fa-money-bill-transfer me-2" style="color: var(--brand-blue); width:20px; text-align:center;"></i> Gastos</a>
+                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/gastos"><i class="fa-solid fa-money-bill-transfer me-2" style="color: var(--brand-yellow); width:20px; text-align:center;"></i> Gastos</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-bold border-bottom" href="/sales/catalogo"><i class="fa-solid fa-book-open text-brand-pink me-2" style="width:20px; text-align:center;"></i> Catálogo Físico</a>
-                    </li>
+
                     <li class="nav-item mt-2">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-bold bg-light border" href="/arqueo/nuevo"><i class="fa-solid fa-calculator text-brand-blue me-2" style="width:20px; text-align:center;"></i> Arqueo de Caja</a>
+                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-bold bg-light border" href="/arqueo/nuevo"><i class="fa-solid fa-calculator text-brand-yellow me-2" style="width:20px; text-align:center;"></i> Arqueo de Caja</a>
                     </li>
                 {% elif current_user.rol == 'vendedor' %}
                     <!-- Vistas Estrictamente Operativas (Cajeros) -->
+
                     <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/sales/catalogo"><i class="fa-solid fa-book-open text-muted me-2" style="width:20px; text-align:center;"></i> Catálogo Rápido</a>
+                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/sales/nueva"><i class="fa-solid fa-cash-register text-brand-orange me-2" style="width:20px; text-align:center;"></i> Módulo de Caja</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/sales/nueva"><i class="fa-solid fa-cash-register text-brand-pink me-2" style="width:20px; text-align:center;"></i> Módulo de Caja</a>
+                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/sales/ventas_hoy"><i class="fa-solid fa-list-check me-2" style="color: var(--brand-yellow); width:20px; text-align:center;"></i> Ventas del Día</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/sales/ventas_hoy"><i class="fa-solid fa-list-check me-2" style="color: var(--brand-blue); width:20px; text-align:center;"></i> Ventas del Día</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/admin/maneos"><i class="fa-solid fa-handshake text-muted me-2" style="width:20px; text-align:center;"></i> Maneos</a>
-                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="/gastos"><i class="fa-solid fa-money-bill-transfer text-success me-2" style="width:20px; text-align:center;"></i> Gastos</a>
                     </li>
                     <li class="nav-item mt-2">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-bold bg-light border" href="/arqueo/nuevo"><i class="fa-solid fa-calculator text-brand-blue me-2" style="width:20px; text-align:center;"></i> Arqueo</a>
+                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-bold bg-light border" href="/arqueo/nuevo"><i class="fa-solid fa-calculator text-brand-yellow me-2" style="width:20px; text-align:center;"></i> Arqueo</a>
                     </li>
-                {% elif current_user.rol == 'bodega' %}
-                    <!-- Vistas Exclusivas para el Encargado de Bodega -->
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('bodega_bp.dashboard') }}"><i class="fa-solid fa-boxes-stacked text-brand-blue me-2" style="width:20px; text-align:center;"></i> Bodega</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('inventory_bp.index') }}"><i class="fa-solid fa-box text-brand-pink me-2" style="width:20px; text-align:center;"></i> Mi Inventario (Bodega)</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('bodega_bp.clientes') }}"><i class="fa-solid fa-address-book text-muted me-2" style="width:20px; text-align:center;"></i> Directorio Clientes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('bodega_bp.nuevo_cliente') }}"><i class="fa-solid fa-user-plus text-muted me-2" style="width:20px; text-align:center;"></i> Registrar Cliente</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('bodega_bp.nueva_factura') }}"><i class="fa-solid fa-file-invoice text-brand-pink me-2" style="width:20px; text-align:center;"></i> Subir Factura</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-bold border-bottom" href="{{ url_for('bodega_bp.modulo_abonos') }}"><i class="fa-solid fa-money-bill-transfer text-success me-2" style="width:20px; text-align:center;"></i> Módulo Abonos</a>
-                    </li>
-                {% elif current_user.rol == 'vendedor_bodega' %}
-                    <!-- Vistas para el Vendedor de Bodega (Sin Inventario) -->
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('bodega_bp.dashboard') }}"><i class="fa-solid fa-house-chimney text-brand-blue me-2" style="width:20px; text-align:center;"></i> Mi Panel</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('bodega_bp.clientes') }}"><i class="fa-solid fa-address-book text-muted me-2" style="width:20px; text-align:center;"></i> Mis Clientes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('bodega_bp.nuevo_cliente') }}"><i class="fa-solid fa-user-plus text-muted me-2" style="width:20px; text-align:center;"></i> Crear Cliente</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-semibold border-bottom" href="{{ url_for('bodega_bp.nueva_factura') }}"><i class="fa-solid fa-file-invoice text-brand-pink me-2" style="width:20px; text-align:center;"></i> Facturar a Bodega</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link text-brand-black rounded-3 px-3 py-2 fw-bold border-bottom" href="{{ url_for('bodega_bp.modulo_abonos') }}"><i class="fa-solid fa-money-bill-transfer text-success me-2" style="width:20px; text-align:center;"></i> Registrar Abono</a>
-                    </li>
+
                 {% endif %}
             </ul>
             
