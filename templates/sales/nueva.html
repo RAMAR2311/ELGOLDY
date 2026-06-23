@@ -659,13 +659,13 @@
             const existente = carrito.find(item => item.id === producto.id && (!item.variantes || item.variantes.length === 0));
             if (existente) {
                 // Validación Estricta: Sobreventa (Stock) en productos planos
-                if (existente.cantidad + 1 > producto.cantidad_stock) {
+                if (producto.tipo_producto !== 'producto_final' && existente.cantidad + 1 > producto.cantidad_stock) {
                     alert(`¡Stock insuficiente! Solo te quedan ${producto.cantidad_stock} unidades de ${producto.nombre}.`);
                 } else {
                     existente.cantidad++;
                 }
             } else {
-                if (producto.cantidad_stock <= 0) {
+                if (producto.tipo_producto !== 'producto_final' && producto.cantidad_stock <= 0) {
                     alert(`¡Sin Stock Físico! No puedes vender o agregar ${producto.nombre}.`);
                     return;
                 }
@@ -692,6 +692,7 @@
                     id: producto.id,
                     sku: producto.sku,
                     nombre: producto.nombre,
+                    tipo_producto: producto.tipo_producto,
                     tipo_inventario: producto.tipo_inventario,
                     cantidad: 1,
                     precio_final: initial_precio, 
@@ -724,8 +725,8 @@
                 return;
             }
             
-            // Los productos manuales no tienen stock real que validar
-            if (!item.es_manual) {
+            // Los productos manuales no tienen stock real que validar, tampoco los finales del POS
+            if (!item.es_manual && item.tipo_producto !== 'producto_final') {
                 // Validar stock de la variante si existe, si no del producto base
                 let max_stock = item.cantidad_stock;
                 if (item.variantes && item.variantes.length > 0) {
@@ -747,7 +748,7 @@
             
             const varSel = item.variantes.find(v => v.id == item.variant_id);
             if (varSel) {
-                if (item.cantidad > varSel.stock) {
+                if (item.tipo_producto !== 'producto_final' && item.cantidad > varSel.stock) {
                     alert(`Has seleccionado una variante con poco stock (${varSel.stock}). Se ajustará la cantidad.`);
                     item.cantidad = varSel.stock > 0 ? varSel.stock : 1;
                 }
@@ -814,8 +815,11 @@
                 variantHtml = `<select class="form-select form-select-sm mt-1 text-secondary bg-light border-0 shadow-sm" onchange="actualizarItem(${index}, 'variant_id', this.value)">`;
                 item.variantes.forEach(v => {
                     let selected = (v.id == item.variant_id) ? "selected" : "";
-                    // Si tiene 0 despintar opción o alertarlo
-                    let disableStr = v.stock <= 0 ? "(Sin stock)" : `(Stock: ${v.stock})`;
+                    // Si es final, no pintamos (Sin stock)
+                    let disableStr = "";
+                    if (item.tipo_producto !== 'producto_final') {
+                        disableStr = v.stock <= 0 ? "(Sin stock)" : `(Stock: ${v.stock})`;
+                    }
                     variantHtml += `<option value="${v.id}" ${selected}>${v.nombre} ${disableStr}</option>`;
                 });
                 variantHtml += `</select>`;

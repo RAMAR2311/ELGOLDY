@@ -119,10 +119,11 @@ def procesar_venta():
                     variante = ProductVariant.query.with_for_update().get(variant_id)
                     if not variante:
                         raise ValueError(f"La variante con ID {variant_id} no existe.")
-                    if cantidad_vendida > variante.cantidad_stock:
+                    if cantidad_vendida > variante.cantidad_stock and producto.tipo_producto != 'producto_final':
                         raise ValueError(f"Stock insuficiente para la variante '{variante.nombre_variante}' de '{producto.nombre}'. Solicitado: {cantidad_vendida}, Disponible: {variante.cantidad_stock}.")
-                    variante.cantidad_stock -= cantidad_vendida
-                    producto.cantidad_stock -= cantidad_vendida # Sincronizar producto base
+                    if producto.tipo_producto != 'producto_final':
+                        variante.cantidad_stock -= cantidad_vendida
+                        producto.cantidad_stock -= cantidad_vendida # Sincronizar producto base
                     precio_limite_autorizado = variante.precio_costo if current_user.rol == 'admin' else variante.precio_minimo
                 else:
                     if producto.recetas and len(producto.recetas) > 0:
@@ -136,9 +137,10 @@ def procesar_venta():
                         # Opcional: no descontamos el producto_final en sí si es preparado al momento, pero dejaremos que el stock del producto principal no bloquee
                     else:
                         # No tiene receta (ej. bebidas, adicionales o producto directo)
-                        if cantidad_vendida > producto.cantidad_stock:
+                        if cantidad_vendida > producto.cantidad_stock and producto.tipo_producto != 'producto_final':
                             raise ValueError(f"Stock insuficiente para el producto '{producto.nombre}'. Solicitado: {cantidad_vendida}, Disponible: {producto.cantidad_stock}.")
-                        producto.cantidad_stock -= cantidad_vendida
+                        if producto.tipo_producto != 'producto_final':
+                            producto.cantidad_stock -= cantidad_vendida
 
                     precio_limite_autorizado = producto.precio_costo if current_user.rol == 'admin' else producto.precio_minimo
 
@@ -238,6 +240,7 @@ def api_buscar_producto(sku):
         'id': producto.id,
         'nombre': producto.nombre,
         'sku': producto.sku,
+        'tipo_producto': producto.tipo_producto,
         'tipo_inventario': producto.tipo_inventario,
         'cantidad_stock': producto.total_stock,
         'precio_minimo': float(producto.precio_minimo),
