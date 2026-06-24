@@ -159,7 +159,8 @@ def balance_financiero():
             elif 'gaseosa grande' in nombre_prod:
                 cantidades['gaseosas_grandes'] += d.cantidad_vendida
 
-        pass
+    cantidades['total_perros_grueso'] = cantidades['perros_solos'] + cantidades['perros_combo'] + cantidades['cortesias']
+    cantidades['total_gaseosas_pequenas_reales'] = cantidades['gaseosas_pequenas'] + cantidades['perros_combo']
 
     # 3. Costos Indirectos y Gastos Operativos
     gastos_query = Expense.query.filter(Expense.fecha_gasto >= inicio_dt, Expense.fecha_gasto < fin_dt_query).order_by(Expense.fecha_gasto.asc()).all()

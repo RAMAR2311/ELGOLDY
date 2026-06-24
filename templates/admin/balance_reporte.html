@@ -67,6 +67,29 @@
                 </div>
             </div>
 
+            <!-- Resumen de Ventas en Grueso (Agrupado) -->
+            <div class="card bg-light border border-dark border-opacity-10 shadow-none mb-5 rounded-3 page-break-inside-avoid">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold text-brand-black mb-3"><i class="fa-solid fa-boxes-stacked me-2 text-primary"></i> RESUMEN DE VENTAS EN GRUESO (VOLUMEN REAL)</h6>
+                    <div class="row g-4 text-center">
+                        <div class="col-6 col-md-4">
+                            <div class="p-3 bg-white border rounded-3">
+                                <h2 class="fw-bolder text-warning mb-0">{{ datos.cantidades.total_perros_grueso }}</h2>
+                                <p class="text-muted small fw-bold mb-0 text-uppercase">Total Perros Vendidos</p>
+                                <small class="text-secondary" style="font-size:0.7rem;">(Solos + Combos + Cortesías)</small>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="p-3 bg-white border rounded-3">
+                                <h2 class="fw-bolder text-primary mb-0">{{ datos.cantidades.total_gaseosas_pequenas_reales }}</h2>
+                                <p class="text-muted small fw-bold mb-0 text-uppercase">Gaseosas Pequeñas Reales</p>
+                                <small class="text-secondary" style="font-size:0.7rem;">(Sueltas + Gastadas en Combo)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Sección 2: Costos y Gastos -->
             <h5 class="fw-bold text-danger mb-3 border-bottom pb-2"><i class="fa-solid fa-arrow-trend-down me-2"></i> 2. COSTOS DE MERCANCÍA Y GASTOS</h5>
 
