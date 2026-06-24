@@ -263,9 +263,9 @@ def historial():
     # Calcular el valor exacto de 'HOY' en Bogotá
     hoy_bogota = obtener_hora_bogota().strftime('%Y-%m-%d')
     
-    # Si existen los args, los usa, de lo contrario colapsa a HOY por defecto
-    fecha_inicio = request.args.get('fecha_inicio', hoy_bogota)
-    fecha_fin = request.args.get('fecha_fin', hoy_bogota)
+    # Si existen los args, los usa, de lo contrario colapsa a None (muestra histórico completo)
+    fecha_inicio = request.args.get('fecha_inicio')
+    fecha_fin = request.args.get('fecha_fin')
     
     # Optimización: eager loading (evita N+1 con joinedload)
     query = Sale.query.options(joinedload(Sale.vendedor))
