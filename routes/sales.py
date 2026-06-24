@@ -121,28 +121,25 @@ def procesar_venta():
                         raise ValueError(f"La variante con ID {variant_id} no existe.")
                     if cantidad_vendida > variante.cantidad_stock and producto.tipo_producto != 'producto_final':
                         raise ValueError(f"Stock insuficiente para la variante '{variante.nombre_variante}' de '{producto.nombre}'. Solicitado: {cantidad_vendida}, Disponible: {variante.cantidad_stock}.")
-                    if producto.tipo_producto != 'producto_final':
-                        variante.cantidad_stock -= cantidad_vendida
-                        producto.cantidad_stock -= cantidad_vendida # Sincronizar producto base
+                    
+                    variante.cantidad_stock -= cantidad_vendida
+                    producto.cantidad_stock -= cantidad_vendida # Sincronizar producto base
                     precio_limite_autorizado = variante.precio_costo if current_user.rol == 'admin' else variante.precio_minimo
                 else:
-                    if producto.recetas and len(producto.recetas) > 0:
-                        # Tiene receta, descontar insumos
-                        for receta in producto.recetas:
-                            insumo = receta.insumo
-                            cantidad_a_descontar = receta.cantidad_requerida * cantidad_vendida
-                            if insumo.cantidad_stock < cantidad_a_descontar:
-                                raise ValueError(f"Stock insuficiente del insumo '{insumo.nombre}' para preparar '{producto.nombre}'.")
-                            insumo.cantidad_stock -= cantidad_a_descontar
-                        # Opcional: no descontamos el producto_final en sí si es preparado al momento, pero dejaremos que el stock del producto principal no bloquee
-                    else:
-                        # No tiene receta (ej. bebidas, adicionales o producto directo)
-                        if cantidad_vendida > producto.cantidad_stock and producto.tipo_producto != 'producto_final':
-                            raise ValueError(f"Stock insuficiente para el producto '{producto.nombre}'. Solicitado: {cantidad_vendida}, Disponible: {producto.cantidad_stock}.")
-                        if producto.tipo_producto != 'producto_final':
-                            producto.cantidad_stock -= cantidad_vendida
-
+                    if cantidad_vendida > producto.cantidad_stock and producto.tipo_producto != 'producto_final':
+                        raise ValueError(f"Stock insuficiente para el producto '{producto.nombre}'. Solicitado: {cantidad_vendida}, Disponible: {producto.cantidad_stock}.")
+                    
+                    producto.cantidad_stock -= cantidad_vendida
                     precio_limite_autorizado = producto.precio_costo if current_user.rol == 'admin' else producto.precio_minimo
+
+                # Procesar siempre los insumos si tiene receta (independientemente de si es variante o no)
+                if producto.recetas and len(producto.recetas) > 0:
+                    for receta in producto.recetas:
+                        insumo = receta.insumo
+                        cantidad_a_descontar = receta.cantidad_requerida * cantidad_vendida
+                        if insumo.cantidad_stock < cantidad_a_descontar:
+                            raise ValueError(f"Stock insuficiente del insumo '{insumo.nombre}' para preparar '{producto.nombre}'.")
+                        insumo.cantidad_stock -= cantidad_a_descontar
 
                 if precio_venta_final < precio_limite_autorizado:
                     raise ValueError(f"No autorizado: El precio ({precio_venta_final}) del producto '{producto.nombre}' está por debajo del límite permitido ({precio_limite_autorizado}).")
@@ -388,23 +385,24 @@ def eliminar_venta(sale_id):
     try:
         # Revertir Stock
         for detalle in venta.detalles:
+            producto = Product.query.with_for_update().get(detalle.product_id)
+            if not producto:
+                continue
+                
             if detalle.variant_id:
                 variante = ProductVariant.query.with_for_update().get(detalle.variant_id)
                 if variante:
                     variante.cantidad_stock += detalle.cantidad_vendida
-                producto = Product.query.with_for_update().get(detalle.product_id)
-                if producto:
-                    producto.cantidad_stock += detalle.cantidad_vendida
+                producto.cantidad_stock += detalle.cantidad_vendida
             else:
-                producto = Product.query.with_for_update().get(detalle.product_id)
-                if producto:
-                    if producto.recetas and len(producto.recetas) > 0:
-                        for receta in producto.recetas:
-                            insumo = receta.insumo
-                            if insumo:
-                                insumo.cantidad_stock += (receta.cantidad_requerida * detalle.cantidad_vendida)
-                    else:
-                        producto.cantidad_stock += detalle.cantidad_vendida
+                producto.cantidad_stock += detalle.cantidad_vendida
+                
+            # Revertir siempre insumos si tiene receta
+            if producto.recetas and len(producto.recetas) > 0:
+                for receta in producto.recetas:
+                    insumo = receta.insumo
+                    if insumo:
+                        insumo.cantidad_stock += (receta.cantidad_requerida * detalle.cantidad_vendida)
                     
         # Eliminar Venta y Detalles (Cascada)
         db.session.delete(venta)
