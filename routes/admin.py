@@ -150,13 +150,13 @@ def balance_financiero():
             cantidades['cortesias'] += d.cantidad_vendida
         else:
             nombre_prod = d.producto.nombre.lower() if d.producto else (d.nombre_manual.lower() if d.nombre_manual else '')
-            if 'hot dog sencillo' in nombre_prod:
+            if 'sencillo' in nombre_prod or 'solo' in nombre_prod or ('perro' in nombre_prod and 'combo' not in nombre_prod) or ('hot dog' in nombre_prod and 'combo' not in nombre_prod):
                 cantidades['perros_solos'] += d.cantidad_vendida
-            elif 'hot dog en combo' in nombre_prod:
+            elif 'combo' in nombre_prod:
                 cantidades['perros_combo'] += d.cantidad_vendida
-            elif 'gaseosa peque' in nombre_prod:
+            elif 'peque' in nombre_prod or 'personal' in nombre_prod or 'mini' in nombre_prod:
                 cantidades['gaseosas_pequenas'] += d.cantidad_vendida
-            elif 'gaseosa grande' in nombre_prod:
+            elif 'grande' in nombre_prod or 'litro' in nombre_prod or 'mega' in nombre_prod:
                 cantidades['gaseosas_grandes'] += d.cantidad_vendida
 
     cantidades['total_perros_grueso'] = cantidades['perros_solos'] + cantidades['perros_combo'] + cantidades['cortesias']
