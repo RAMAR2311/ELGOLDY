@@ -83,13 +83,14 @@ def index():
         
     gastos_lista = query.order_by(Expense.fecha_gasto.desc()).all()
 
-    total_diarios = sum((g.monto for g in gastos_lista if g.tipo_gasto == 'Gastos Operacionales'))
-    total_indirectos = sum((g.monto for g in gastos_lista if g.tipo_gasto in ['Costos Indirectos', 'Costos Producto']))
+    total_operativos = sum((g.monto for g in gastos_lista if g.tipo_gasto == 'Gastos Operacionales'))
+    total_producto = sum((g.monto for g in gastos_lista if g.tipo_gasto == 'Costos Producto'))
+    total_indirectos = sum((g.monto for g in gastos_lista if g.tipo_gasto == 'Costos Indirectos'))
 
     ahora = obtener_hora_bogota()
     # Provide today's date formatted for HTML5 <input type="date">
     hoy_str = ahora.strftime('%Y-%m-%d')
-    return render_template('gastos/index.html', gastos=gastos_lista, total_diarios=total_diarios, total_indirectos=total_indirectos, hoy=hoy_str)
+    return render_template('gastos/index.html', gastos=gastos_lista, total_operativos=total_operativos, total_producto=total_producto, total_indirectos=total_indirectos, hoy=hoy_str)
 
 @gastos_bp.route('/<int:id>/eliminar', methods=['POST'])
 @login_required
