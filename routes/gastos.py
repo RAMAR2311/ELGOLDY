@@ -62,30 +62,34 @@ def index():
         
         return redirect(url_for('gastos_bp.index'))
 
-    # GET Logic (Filters current month expenses)
-    ahora = obtener_hora_bogota()
-    mes_actual = ahora.month
-    anio_actual = ahora.year
+    # GET Logic (Filters by date if provided, otherwise shows all)
+    fecha_inicio_str = request.args.get('fecha_inicio')
+    fecha_fin_str = request.args.get('fecha_fin')
 
-    # Consultamos registros del mes y del año actual
-    query = Expense.query.filter(
-        extract('month', Expense.fecha_gasto) == mes_actual,
-        extract('year', Expense.fecha_gasto) == anio_actual
-    )
+    query = Expense.query
+    
+    if fecha_inicio_str and fecha_fin_str:
+        try:
+            start_date = datetime.strptime(fecha_inicio_str, '%Y-%m-%d')
+            end_date = datetime.strptime(fecha_fin_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            query = query.filter(Expense.fecha_gasto >= start_date, Expense.fecha_gasto <= end_date)
+        except ValueError:
+            pass
     
     # Restricción de visibilidad: 
     # Si no es administrador, SOLAMENTE puede ver los gastos que haya registrado él mismo.
     if current_user.rol != 'admin':
         query = query.filter(Expense.usuario_id == current_user.id)
         
-    gastos_mes = query.order_by(Expense.fecha_gasto.desc()).all()
+    gastos_lista = query.order_by(Expense.fecha_gasto.desc()).all()
 
-    total_diarios = sum((g.monto for g in gastos_mes if g.tipo_gasto == 'Gastos Operacionales'))
-    total_indirectos = sum((g.monto for g in gastos_mes if g.tipo_gasto in ['Costos Indirectos', 'Costos Producto']))
+    total_diarios = sum((g.monto for g in gastos_lista if g.tipo_gasto == 'Gastos Operacionales'))
+    total_indirectos = sum((g.monto for g in gastos_lista if g.tipo_gasto in ['Costos Indirectos', 'Costos Producto']))
 
+    ahora = obtener_hora_bogota()
     # Provide today's date formatted for HTML5 <input type="date">
     hoy_str = ahora.strftime('%Y-%m-%d')
-    return render_template('gastos/index.html', gastos=gastos_mes, total_diarios=total_diarios, total_indirectos=total_indirectos, hoy=hoy_str)
+    return render_template('gastos/index.html', gastos=gastos_lista, total_diarios=total_diarios, total_indirectos=total_indirectos, hoy=hoy_str)
 
 @gastos_bp.route('/<int:id>/eliminar', methods=['POST'])
 @login_required
