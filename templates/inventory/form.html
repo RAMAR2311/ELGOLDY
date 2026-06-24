@@ -53,6 +53,41 @@
                         </div>
                     </div>
                 </div>
+                
+                <div class="col-md-12 mt-5" id="divRecetas">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-brand-black m-0"><i class="fa-solid fa-mortar-pestle text-brand-orange me-2"></i>Ingredientes / Receta</h5>
+                        <button type="button" class="btn btn-sm btn-outline-dark rounded-pill" id="btnAddReceta">
+                            <i class="fa-solid fa-plus me-1"></i> Añadir Insumo
+                        </button>
+                    </div>
+                    <div class="alert alert-secondary border-0 small text-muted mb-3 rounded-3">
+                        <i class="fa-solid fa-info-circle me-1"></i> Al vender este producto, el sistema descontará matemáticamente las cantidades de las materias primas vinculadas aquí.
+                    </div>
+                    
+                    <div id="recetasContainer">
+                        {% if producto and producto.recetas %}
+                            {% for receta in producto.recetas %}
+                            <div class="row g-2 mb-2 receta-line align-items-center">
+                                <div class="col-7">
+                                    <select name="receta_insumo_id[]" class="form-select bg-light border-0 fw-bold">
+                                        <option value="">Seleccionar Materia Prima...</option>
+                                        {% for insumo in insumos %}
+                                        <option value="{{ insumo.id }}" {% if insumo.id == receta.insumo_id %}selected{% endif %}>{{ insumo.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-3">
+                                    <input type="number" step="0.01" min="0.01" name="receta_cantidad[]" class="form-control bg-light border-0 text-center" placeholder="Cant." value="{{ receta.cantidad_requerida }}">
+                                </div>
+                                <div class="col-2 text-end">
+                                    <button type="button" class="btn btn-outline-danger btn-remove-receta rounded-circle"><i class="fa-solid fa-trash-can"></i></button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
 
                 <hr class="my-5 border-light">
                 
@@ -72,15 +107,52 @@ document.addEventListener('DOMContentLoaded', function() {
     const tipoSelect = document.getElementById('tipoProducto');
     const divCosto = document.getElementById('divCosto');
     const divPrecio = document.getElementById('divPrecio');
+    const divRecetas = document.getElementById('divRecetas');
+    const btnAddReceta = document.getElementById('btnAddReceta');
+    const recetasContainer = document.getElementById('recetasContainer');
 
     function toggleCostoPrecio() {
         if (tipoSelect.value === 'insumo') {
             divCosto.classList.remove('d-none');
             divPrecio.classList.add('d-none');
+            if(divRecetas) divRecetas.classList.add('d-none');
         } else {
             divCosto.classList.add('d-none');
             divPrecio.classList.remove('d-none');
+            if(divRecetas) divRecetas.classList.remove('d-none');
         }
+    }
+
+    if(btnAddReceta) {
+        btnAddReceta.addEventListener('click', function() {
+            const row = document.createElement('div');
+            row.className = 'row g-2 mb-2 receta-line align-items-center';
+            row.innerHTML = `
+                <div class="col-7">
+                    <select name="receta_insumo_id[]" class="form-select bg-light border-0 fw-bold">
+                        <option value="">Seleccionar Materia Prima...</option>
+                        {% for insumo in insumos %}
+                        <option value="{{ insumo.id }}">{{ insumo.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-3">
+                    <input type="number" step="0.01" min="0.01" name="receta_cantidad[]" class="form-control bg-light border-0 text-center" placeholder="Cant." value="1">
+                </div>
+                <div class="col-2 text-end">
+                    <button type="button" class="btn btn-outline-danger btn-remove-receta rounded-circle"><i class="fa-solid fa-trash-can"></i></button>
+                </div>
+            `;
+            recetasContainer.appendChild(row);
+        });
+    }
+
+    if(recetasContainer) {
+        recetasContainer.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-remove-receta')) {
+                e.target.closest('.receta-line').remove();
+            }
+        });
     }
 
     tipoSelect.addEventListener('change', toggleCostoPrecio);

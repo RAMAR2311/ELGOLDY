@@ -129,13 +129,29 @@ def nuevo():
             db.session.add(ajuste_inicial)
             db.session.commit()
 
+            # Sincronización de Recetas
+            if nuevo_prod.tipo_producto == 'producto_final':
+                from models import Receta
+                r_insumos = request.form.getlist('receta_insumo_id[]')
+                r_cants = request.form.getlist('receta_cantidad[]')
+                for i in range(len(r_insumos)):
+                    if r_insumos[i]:
+                        receta = Receta(
+                            producto_final_id=nuevo_prod.id,
+                            insumo_id=int(r_insumos[i]),
+                            cantidad_requerida=float(r_cants[i] or 1.0)
+                        )
+                        db.session.add(receta)
+                db.session.commit()
+
             flash('Producto Maestro y sus subcategorías creados exitosamente.', 'success')
             return redirect(url_for('inventory_bp.index'))
         except Exception as e:
             db.session.rollback()
             flash(f'Error al intentar guardar el producto: {str(e)}', 'danger')
             
-    return render_template('inventory/form.html')
+    insumos = Product.query.filter_by(tipo_producto='insumo').all()
+    return render_template('inventory/form.html', insumos=insumos)
 
 @inventory_bp.route('/editar/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -222,6 +238,24 @@ def editar_producto(id):
         try:
             db.session.commit()
             
+            # Sincronización de Recetas
+            if producto.tipo_producto == 'producto_final':
+                from models import Receta
+                # 1. Limpiar recetas antiguas
+                Receta.query.filter_by(producto_final_id=producto.id).delete()
+                # 2. Agregar nuevas
+                r_insumos = request.form.getlist('receta_insumo_id[]')
+                r_cants = request.form.getlist('receta_cantidad[]')
+                for i in range(len(r_insumos)):
+                    if r_insumos[i]:
+                        receta = Receta(
+                            producto_final_id=producto.id,
+                            insumo_id=int(r_insumos[i]),
+                            cantidad_requerida=float(r_cants[i] or 1.0)
+                        )
+                        db.session.add(receta)
+                db.session.commit()
+                
             # Registrar ajuste de stock si el TOTAL cambió
             stock_total_nuevo = producto.total_stock
             if stock_total_anterior != stock_total_nuevo:
@@ -243,8 +277,9 @@ def editar_producto(id):
 
     from models import Categoria
     categorias = Categoria.query.all()
+    insumos = Product.query.filter_by(tipo_producto='insumo').all()
     # El objeto producto se pasa a Jinja para auto-poblar (pre-llenar) el formulario en modo edición
-    return render_template('inventory/form.html', producto=producto, categorias=categorias)
+    return render_template('inventory/form.html', producto=producto, categorias=categorias, insumos=insumos)
 
 @inventory_bp.route('/historial-ajustes')
 @login_required
