@@ -52,7 +52,7 @@ def nuevo():
     # Calcular gastos automáticos del día
     gastos_diarios_registros = Expense.query.filter(
         db.func.date(Expense.fecha_gasto) == fecha_seleccionada,
-        Expense.tipo_gasto == 'Gastos Operacionales'
+        Expense.metodo_pago == 'efectivo'
     ).all()
     gastos_automaticos = float(sum(g.monto for g in gastos_diarios_registros))
 
@@ -84,7 +84,7 @@ def nuevo():
         # Recalcular gastos automáticos por seguridad en el backend
         gastos_recalculados = Expense.query.filter(
             db.func.date(Expense.fecha_gasto) == fecha_seleccionada,
-            Expense.tipo_gasto == 'Gastos Operacionales'
+            Expense.metodo_pago == 'efectivo'
         ).all()
         gastos_del_dia = float(sum(g.monto for g in gastos_recalculados))
         
@@ -163,7 +163,6 @@ def reporte():
     gastos_efectivo_query = Expense.query.filter(
         db.func.date(Expense.fecha_gasto) >= fecha_inicio,
         db.func.date(Expense.fecha_gasto) <= fecha_fin,
-        Expense.tipo_gasto == 'Gasto Diario',
         Expense.metodo_pago == 'efectivo'
     ).all()
     resumen['total_gastos_efectivo'] = sum(g.monto for g in gastos_efectivo_query)
