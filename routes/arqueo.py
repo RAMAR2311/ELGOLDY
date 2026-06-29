@@ -134,13 +134,6 @@ def reporte():
         fecha_inicio = obtener_hora_bogota().date()
         fecha_fin = obtener_hora_bogota().date()
 
-    # BLOQUEO DE SEGURIDAD: Los vendedores no pueden ver días anteriores
-    if current_user.rol != 'admin':
-        hoy = obtener_hora_bogota().date()
-        fecha_inicio = hoy
-        fecha_fin = hoy
-        fecha_inicio_str = hoy.strftime('%Y-%m-%d')
-        fecha_fin_str = hoy.strftime('%Y-%m-%d')
 
     # Arqueo unificado: todos los usuarios ven los mismos arqueos (ya no se filtra por vendedor)
     query = ArqueoCaja.query.filter(ArqueoCaja.fecha_arqueo >= fecha_inicio, ArqueoCaja.fecha_arqueo <= fecha_fin)
