@@ -58,15 +58,12 @@ def dashboard():
         Product.cantidad_stock <= 10
     ).count()
     
-    # Se filtran las ventas de la quincena actual (del 1 al 15 o del 16 al fin de mes)
+    # Se filtran las ventas del mes actual
     hoy = obtener_hora_bogota()
-    if hoy.day <= 15:
-        inicio_quincena = hoy.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    else:
-        inicio_quincena = hoy.replace(day=16, hour=0, minute=0, second=0, microsecond=0)
+    inicio_mes = hoy.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     
-    total_ventas = db.session.query(func.sum(Sale.monto_total)).filter(Sale.fecha_venta >= inicio_quincena).scalar() or 0.0
-    conteo_ventas = Sale.query.filter(Sale.fecha_venta >= inicio_quincena).count()
+    total_ventas = db.session.query(func.sum(Sale.monto_total)).filter(Sale.fecha_venta >= inicio_mes).scalar() or 0.0
+    conteo_ventas = Sale.query.filter(Sale.fecha_venta >= inicio_mes).count()
 
     return render_template('admin/dashboard.html', 
                            total_productos=total_productos,
