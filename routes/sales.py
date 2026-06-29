@@ -263,9 +263,30 @@ def historial():
     # Calcular el valor exacto de 'HOY' en Bogotá
     hoy_bogota = obtener_hora_bogota().strftime('%Y-%m-%d')
     
-    # Si existen los args, los usa, de lo contrario colapsa a None (muestra histórico completo)
     fecha_inicio = request.args.get('fecha_inicio')
     fecha_fin = request.args.get('fecha_fin')
+    
+    hoy = obtener_hora_bogota()
+    if not fecha_inicio or not fecha_fin:
+        if hoy.day >= 21:
+            primer_dia = hoy.replace(day=21)
+            mes_siguiente = hoy.month + 1
+            año_siguiente = hoy.year
+            if mes_siguiente == 13:
+                mes_siguiente = 1
+                año_siguiente += 1
+            ultimo_dia = hoy.replace(year=año_siguiente, month=mes_siguiente, day=20)
+        else:
+            mes_anterior = hoy.month - 1
+            año_anterior = hoy.year
+            if mes_anterior == 0:
+                mes_anterior = 12
+                año_anterior -= 1
+            primer_dia = hoy.replace(year=año_anterior, month=mes_anterior, day=21)
+            ultimo_dia = hoy.replace(day=20)
+            
+        fecha_inicio = primer_dia.strftime('%Y-%m-%d')
+        fecha_fin = ultimo_dia.strftime('%Y-%m-%d')
     
     # Optimización: eager loading (evita N+1 con joinedload)
     query = Sale.query.options(joinedload(Sale.vendedor))
