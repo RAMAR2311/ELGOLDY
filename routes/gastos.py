@@ -68,7 +68,29 @@ def index():
 
     query = Expense.query
     
-    if fecha_inicio_str and fecha_fin_str:
+    hoy = obtener_hora_bogota()
+    if not fecha_inicio_str or not fecha_fin_str:
+        if hoy.day >= 21:
+            start_date = hoy.replace(day=21, hour=0, minute=0, second=0, microsecond=0)
+            mes_siguiente = hoy.month + 1
+            año_siguiente = hoy.year
+            if mes_siguiente == 13:
+                mes_siguiente = 1
+                año_siguiente += 1
+            end_date = hoy.replace(year=año_siguiente, month=mes_siguiente, day=20, hour=23, minute=59, second=59)
+        else:
+            mes_anterior = hoy.month - 1
+            año_anterior = hoy.year
+            if mes_anterior == 0:
+                mes_anterior = 12
+                año_anterior -= 1
+            start_date = hoy.replace(year=año_anterior, month=mes_anterior, day=21, hour=0, minute=0, second=0, microsecond=0)
+            end_date = hoy.replace(day=20, hour=23, minute=59, second=59)
+            
+        fecha_inicio_str = start_date.strftime('%Y-%m-%d')
+        fecha_fin_str = end_date.strftime('%Y-%m-%d')
+        query = query.filter(Expense.fecha_gasto >= start_date, Expense.fecha_gasto <= end_date)
+    else:
         try:
             start_date = datetime.strptime(fecha_inicio_str, '%Y-%m-%d')
             end_date = datetime.strptime(fecha_fin_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
@@ -90,7 +112,7 @@ def index():
     ahora = obtener_hora_bogota()
     # Provide today's date formatted for HTML5 <input type="date">
     hoy_str = ahora.strftime('%Y-%m-%d')
-    return render_template('gastos/index.html', gastos=gastos_lista, total_operativos=total_operativos, total_producto=total_producto, total_indirectos=total_indirectos, hoy=hoy_str)
+    return render_template('gastos/index.html', gastos=gastos_lista, total_operativos=total_operativos, total_producto=total_producto, total_indirectos=total_indirectos, hoy=hoy_str, fecha_inicio_default=fecha_inicio_str, fecha_fin_default=fecha_fin_str)
 
 @gastos_bp.route('/<int:id>/eliminar', methods=['POST'])
 @login_required

@@ -114,11 +114,11 @@
     <form method="GET" action="{{ url_for('gastos_bp.index') }}" class="row g-3 align-items-end">
         <div class="col-md-4">
             <label class="form-label text-muted small mb-1">Fecha Desde</label>
-            <input type="date" name="fecha_inicio" class="form-control bg-light border-0" value="{{ request.args.get('fecha_inicio', '') }}">
+            <input type="date" name="fecha_inicio" class="form-control bg-light border-0" value="{{ request.args.get('fecha_inicio', fecha_inicio_default) }}">
         </div>
         <div class="col-md-4">
             <label class="form-label text-muted small mb-1">Fecha Hasta</label>
-            <input type="date" name="fecha_fin" class="form-control bg-light border-0" value="{{ request.args.get('fecha_fin', '') }}">
+            <input type="date" name="fecha_fin" class="form-control bg-light border-0" value="{{ request.args.get('fecha_fin', fecha_fin_default) }}">
         </div>
         <div class="col-md-2">
             <button type="submit" class="btn btn-dark w-100 rounded-pill"><i class="fa-solid fa-magnifying-glass me-1"></i> Buscar</button>

@@ -58,12 +58,20 @@ def dashboard():
         Product.cantidad_stock <= 10
     ).count()
     
-    # Se filtran las ventas del mes actual
+    # Se filtran las ventas del ciclo (21 al 20)
     hoy = obtener_hora_bogota()
-    inicio_mes = hoy.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    if hoy.day >= 21:
+        inicio_ciclo = hoy.replace(day=21, hour=0, minute=0, second=0, microsecond=0)
+    else:
+        mes_anterior = hoy.month - 1
+        año_anterior = hoy.year
+        if mes_anterior == 0:
+            mes_anterior = 12
+            año_anterior -= 1
+        inicio_ciclo = hoy.replace(year=año_anterior, month=mes_anterior, day=21, hour=0, minute=0, second=0, microsecond=0)
     
-    total_ventas = db.session.query(func.sum(Sale.monto_total)).filter(Sale.fecha_venta >= inicio_mes).scalar() or 0.0
-    conteo_ventas = Sale.query.filter(Sale.fecha_venta >= inicio_mes).count()
+    total_ventas = db.session.query(func.sum(Sale.monto_total)).filter(Sale.fecha_venta >= inicio_ciclo).scalar() or 0.0
+    conteo_ventas = Sale.query.filter(Sale.fecha_venta >= inicio_ciclo).count()
 
     return render_template('admin/dashboard.html', 
                            total_productos=total_productos,
@@ -87,10 +95,23 @@ def balance_financiero():
     hoy = obtener_hora_bogota()
     import calendar
     if not fecha_inicio_str or not fecha_fin_str:
-        # Por defecto, el mes actual
-        primer_dia = hoy.replace(day=1)
-        ultimo_dia_mes = calendar.monthrange(hoy.year, hoy.month)[1]
-        ultimo_dia = hoy.replace(day=ultimo_dia_mes)
+        # Por defecto, el ciclo actual del 21 al 20
+        if hoy.day >= 21:
+            primer_dia = hoy.replace(day=21)
+            mes_siguiente = hoy.month + 1
+            año_siguiente = hoy.year
+            if mes_siguiente == 13:
+                mes_siguiente = 1
+                año_siguiente += 1
+            ultimo_dia = hoy.replace(year=año_siguiente, month=mes_siguiente, day=20)
+        else:
+            mes_anterior = hoy.month - 1
+            año_anterior = hoy.year
+            if mes_anterior == 0:
+                mes_anterior = 12
+                año_anterior -= 1
+            primer_dia = hoy.replace(year=año_anterior, month=mes_anterior, day=21)
+            ultimo_dia = hoy.replace(day=20)
         
         fecha_inicio_str = primer_dia.strftime('%Y-%m-%d')
         fecha_fin_str = ultimo_dia.strftime('%Y-%m-%d')
