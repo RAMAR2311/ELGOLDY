@@ -61,6 +61,13 @@ def nuevo():
                 resumen_ventas_productos[nombre] = 0
             resumen_ventas_productos[nombre] += detalle.cantidad_vendida
 
+    # Obtener stock de insumos clave (Pan y Salchicha)
+    from models import Product
+    producto_pan = Product.query.filter(Product.nombre.ilike('%pan%')).first()
+    producto_salchicha = Product.query.filter(Product.nombre.ilike('%salchicha%')).first()
+    stock_pan = producto_pan.total_stock if producto_pan else 0
+    stock_salchicha = producto_salchicha.total_stock if producto_salchicha else 0
+
     # Calcular gastos automáticos del día
     gastos_diarios_registros = Expense.query.filter(
         db.func.date(Expense.fecha_gasto) == fecha_seleccionada,
@@ -131,7 +138,9 @@ def nuevo():
         gastos_automaticos=gastos_automaticos,
         gastos_externos=gastos_externos,
         base_sugerida=base_sugerida,
-        resumen_ventas_productos=resumen_ventas_productos
+        resumen_ventas_productos=resumen_ventas_productos,
+        stock_pan=stock_pan,
+        stock_salchicha=stock_salchicha
     )
 
 @arqueo_bp.route('/reporte', methods=['GET'])

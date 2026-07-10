@@ -136,6 +136,21 @@
                             No hay productos vendidos registrados para esta fecha.
                         </div>
                         {% endif %}
+
+                        <hr class="mt-4 mb-3">
+                        <h6 class="fw-bold text-muted mb-3"><i class="fa-solid fa-boxes-stacked me-2"></i> Inventario Restante Actual</h6>
+                        <div class="d-flex justify-content-around bg-light p-3 rounded-3 border">
+                            <div class="text-center">
+                                <span class="d-block text-muted fw-semibold" style="font-size: 0.85rem;">Stock de Pan</span>
+                                <span class="fs-4 fw-bold {% if stock_pan <= 10 %}text-danger{% else %}text-dark{% endif %}">{{ stock_pan }}</span>
+                            </div>
+                            <div class="border-end"></div>
+                            <div class="text-center">
+                                <span class="d-block text-muted fw-semibold" style="font-size: 0.85rem;">Stock de Salchichas</span>
+                                <span class="fs-4 fw-bold {% if stock_salchicha <= 10 %}text-danger{% else %}text-dark{% endif %}">{{ stock_salchicha }}</span>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
             </div>
