@@ -107,6 +107,39 @@
                 </div>
             </div>
 
+            <!-- Resumen de Productos Vendidos -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card card-custom p-4 border-0 shadow-sm" style="background-color: #fafbfc;">
+                        <h5 class="fw-bold text-muted mb-3"><i class="fa-solid fa-list-ul me-2"></i> Productos Vendidos en el Día</h5>
+                        {% if resumen_ventas_productos %}
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Producto</th>
+                                        <th class="text-center" style="width: 150px;">Cantidad Vendida</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for producto, cantidad in resumen_ventas_productos.items() %}
+                                    <tr>
+                                        <td>{{ producto }}</td>
+                                        <td class="text-center fw-bold">{{ cantidad }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info text-center mb-0">
+                            No hay productos vendidos registrados para esta fecha.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             <div class="d-flex justify-content-center mt-5">
                 <button type="submit" class="btn btn-lg rounded-pill px-5 fw-bold text-dark w-100 shadow-sm" style="background-color: #A3D8DE;">
                     <i class="fa-solid fa-lock me-2"></i> Cerrar Caja y Guardar Arqueo

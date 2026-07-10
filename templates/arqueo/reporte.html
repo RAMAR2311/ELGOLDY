@@ -102,7 +102,7 @@
                                 ${{ (arqueo.gastos_del_dia)|cop }}
                             </td>
                             
-                            <td class="text-end {% if arqueo.retiro_grueso > 0 %}fw-bold{% else %}text-muted{% endif %}" style="{% if arqueo.retiro_grueso > 0 %}color: #d97706;{% endif %}">
+                            <td class="text-end {% if arqueo.retiro_grueso > 0 %}fw-bold{% else %}text-muted{% endif %}" {% if arqueo.retiro_grueso > 0 %}style="color: #d97706;"{% endif %}>
                                 ${{ (arqueo.retiro_grueso)|cop }}
                             </td>
                             

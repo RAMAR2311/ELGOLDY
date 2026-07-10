@@ -49,6 +49,18 @@ def nuevo():
     ventas_del_dia = Sale.query.filter(db.func.date(Sale.fecha_venta) == fecha_seleccionada).all()
     total_efectivo, total_transferencia = calcular_totales_dia(ventas_del_dia)
 
+    # Calcular cantidades de productos vendidos en el día
+    resumen_ventas_productos = {}
+    for v in ventas_del_dia:
+        for detalle in v.detalles:
+            nombre = detalle.producto.nombre if detalle.producto else "Producto Eliminado"
+            if detalle.variante:
+                nombre = f"{nombre} ({detalle.variante.nombre_variante})"
+            
+            if nombre not in resumen_ventas_productos:
+                resumen_ventas_productos[nombre] = 0
+            resumen_ventas_productos[nombre] += detalle.cantidad_vendida
+
     # Calcular gastos automáticos del día
     gastos_diarios_registros = Expense.query.filter(
         db.func.date(Expense.fecha_gasto) == fecha_seleccionada,
@@ -118,7 +130,8 @@ def nuevo():
         arqueo_existente=arqueo_existente,
         gastos_automaticos=gastos_automaticos,
         gastos_externos=gastos_externos,
-        base_sugerida=base_sugerida
+        base_sugerida=base_sugerida,
+        resumen_ventas_productos=resumen_ventas_productos
     )
 
 @arqueo_bp.route('/reporte', methods=['GET'])
