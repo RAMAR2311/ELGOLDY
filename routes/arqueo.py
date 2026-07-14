@@ -213,3 +213,21 @@ def reporte():
         ventas_periodo=ventas_periodo,
         gastos_periodo=gastos_periodo
     )
+
+@arqueo_bp.route('/reabrir/<int:arqueo_id>', methods=['POST'])
+@login_required
+@admin_required
+def reabrir(arqueo_id):
+    arqueo = ArqueoCaja.query.get_or_404(arqueo_id)
+    try:
+        db.session.delete(arqueo)
+        db.session.commit()
+        flash('Arqueo reabierto exitosamente. El cierre ha sido anulado y se puede volver a calcular.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash('Ocurrió un error al intentar reabrir el arqueo.', 'danger')
+    
+    # Redirigir al reporte manteniendo los parámetros de fecha si es posible, 
+    # o a la ruta base de reporte
+    return redirect(url_for('arqueo_bp.reporte'))
+

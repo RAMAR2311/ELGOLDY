@@ -85,7 +85,10 @@
                             <th width="10%" class="text-info">Bancos</th>
                             <th width="10%" class="text-danger">Gastos</th>
                             <th width="10%" style="color: #d97706;">Grueso</th>
-                            <th width="13%">Detalle del Gasto</th>
+                            <th width="{% if current_user.rol == 'admin' %}8%{% else %}13%{% endif %}">Detalle del Gasto</th>
+                            {% if current_user.rol == 'admin' %}
+                            <th width="5%" class="d-print-none">Acción</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody style="font-size: 0.9rem;">
@@ -109,6 +112,15 @@
                             <td class="text-muted fst-italic" style="font-size: 0.8rem;">
                                 {{ arqueo.observaciones_gastos if arqueo.observaciones_gastos else '-' }}
                             </td>
+                            {% if current_user.rol == 'admin' %}
+                            <td class="text-center d-print-none">
+                                <form action="{{ url_for('arqueo_bp.reabrir', arqueo_id=arqueo.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas reabrir este arqueo? Esto eliminará el registro actual del cierre de caja.');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Reabrir Arqueo">
+                                        <i class="fa-solid fa-rotate-left"></i>
+                                    </button>
+                                </form>
+                            </td>
+                            {% endif %}
                         </tr>
                         {% else %}
                         <tr>
