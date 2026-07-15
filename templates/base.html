@@ -339,6 +339,17 @@
                                 }
                             });
                         }
+                    } else if (existingSubscription) {
+                        // FIX IOS: Si ya estaba suscrito pero la BD del servidor se reinició o no lo guardó, lo reenviamos.
+                        try {
+                            fetch('/push/subscribe', {
+                                method: 'POST',
+                                body: JSON.stringify(existingSubscription),
+                                headers: { 'Content-Type': 'application/json' }
+                            });
+                        } catch (e) {
+                            console.error('Error sincronizando suscripción existente:', e);
+                        }
                     }
 
                 } catch (err) {
