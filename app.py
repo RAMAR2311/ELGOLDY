@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 
 # Cargar variables de entorno desde el archivo .env
@@ -16,11 +17,22 @@ from models import db, User
 def create_app():
     app = Flask(__name__)
     
-    # Configuración mediante variables de entorno (con fallback a PostgreSQL local)
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-super-secreta')
+    # Configurar Logging para la aplicación
+    logging.basicConfig(level=logging.INFO)
+    app.logger.setLevel(logging.INFO)
     
-    # Para la conexión a PostgreSQL, psycopg2 es el default de SQLALchemy al usar postgresql://
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:admin123@localhost:5432/el_goldy')
+    # Configuración estricta mediante variables de entorno
+    secret_key = os.environ.get('SECRET_KEY')
+    database_url = os.environ.get('DATABASE_URL')
+    
+    if not secret_key or not database_url:
+        # Crash Early: Previene iniciar la app en producción sin configuración segura
+        error_msg = "FALTAN VARIABLES DE ENTORNO CRÍTICAS: 'SECRET_KEY' o 'DATABASE_URL' no están definidas en el .env"
+        app.logger.critical(error_msg)
+        raise RuntimeError(error_msg)
+        
+    app.config['SECRET_KEY'] = secret_key
+    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['UPLOAD_FOLDER'] = 'static/uploads'

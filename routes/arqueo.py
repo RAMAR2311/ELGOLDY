@@ -1,38 +1,18 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
-from models import db, Sale, SalePayment, ArqueoCaja, Expense
+from models import db, Sale, SalePayment, ArqueoCaja, Expense, Product
 from decorators import admin_required
 from datetime import datetime, date
 from decimal import Decimal
 import re
 import pytz
+from sqlalchemy.exc import IntegrityError
+from services.arqueo_service import ArqueoService
 
 arqueo_bp = Blueprint('arqueo_bp', __name__)
 
 def obtener_hora_bogota():
     return datetime.now(pytz.timezone('America/Bogota')).replace(tzinfo=None)
-
-def calcular_totales_dia(ventas_del_dia):
-    """Calcula los totales de efectivo y transferencias del día.
-    Usa SalePayment si está disponible, de lo contrario usa metodo_pago legacy."""
-    total_efectivo = Decimal('0')
-    total_transferencia = Decimal('0')
-    
-    for v in ventas_del_dia:
-        if v.pagos:  # Ventas nuevas con tabla sale_payments
-            for pago in v.pagos:
-                if pago.metodo_pago == 'efectivo':
-                    total_efectivo += pago.monto
-                else:  # nequi, bancolombia, daviplata, transferencia
-                    total_transferencia += pago.monto
-        else:  # Retrocompatibilidad con ventas antiguas
-            if v.metodo_pago == 'efectivo':
-                total_efectivo += v.monto_total
-            elif v.metodo_pago in ['transferencia', 'nequi', 'bancolombia', 'daviplata']:
-                total_transferencia += v.monto_total
-    
-    return total_efectivo, total_transferencia
-
 
 @arqueo_bp.route('/nuevo', methods=['GET', 'POST'])
 @login_required
@@ -47,65 +27,40 @@ def nuevo():
 
     # Calcular ventas del día usando el sistema híbrido (SalePayment + legacy)
     ventas_del_dia = Sale.query.filter(db.func.date(Sale.fecha_venta) == fecha_seleccionada).all()
-    total_efectivo, total_transferencia = calcular_totales_dia(ventas_del_dia)
+    total_efectivo, total_transferencia = ArqueoService.calcular_totales_dia(ventas_del_dia)
 
     # Calcular cantidades de productos vendidos en el día
-    resumen_ventas_productos = {}
-    for v in ventas_del_dia:
-        for detalle in v.detalles:
-            nombre = detalle.producto.nombre if detalle.producto else "Producto Eliminado"
-            if detalle.variante:
-                nombre = f"{nombre} ({detalle.variante.nombre_variante})"
-            
-            if nombre not in resumen_ventas_productos:
-                resumen_ventas_productos[nombre] = 0
-            resumen_ventas_productos[nombre] += detalle.cantidad_vendida
+    resumen_ventas_productos = ArqueoService.obtener_resumen_productos(ventas_del_dia)
 
     # Obtener stock de insumos clave (Pan y Salchicha)
-    from models import Product
     producto_pan = Product.query.filter(Product.nombre.ilike('%pan%')).first()
     producto_salchicha = Product.query.filter(Product.nombre.ilike('%salchicha%')).first()
     stock_pan = producto_pan.total_stock if producto_pan else 0
     stock_salchicha = producto_salchicha.total_stock if producto_salchicha else 0
 
     # Calcular gastos automáticos del día
-    gastos_diarios_registros = Expense.query.filter(
-        db.func.date(Expense.fecha_gasto) == fecha_seleccionada,
-        Expense.metodo_pago == 'efectivo'
-    ).all()
-    gastos_automaticos = float(sum(g.monto for g in gastos_diarios_registros))
+    gastos_automaticos = ArqueoService.calcular_gastos_automaticos(fecha_seleccionada)
 
     # Calcular gastos por productos externos del día
-    gastos_externos_registros = Expense.query.filter(
-        db.func.date(Expense.fecha_gasto) == fecha_seleccionada,
-        Expense.categoria == 'Pago Prod. Externo'
-    ).all()
-    gastos_externos = float(sum(g.monto for g in gastos_externos_registros))
+    gastos_externos = ArqueoService.calcular_gastos_externos(fecha_seleccionada)
 
     # Verificar si ya existe un arqueo GLOBAL para esa fecha (unificado para todos los usuarios)
     arqueo_existente = ArqueoCaja.query.filter_by(fecha_arqueo=fecha_seleccionada).first()
 
     # Calcular base sugerida desde el arqueo anterior
-    ultimo_arqueo = ArqueoCaja.query.filter(ArqueoCaja.fecha_arqueo < fecha_seleccionada).order_by(ArqueoCaja.fecha_arqueo.desc()).first()
-    base_sugerida = 0.0
-    if ultimo_arqueo:
-        base_sugerida = float(ultimo_arqueo.base_inicial + ultimo_arqueo.total_efectivo_sistema - ultimo_arqueo.gastos_del_dia - ultimo_arqueo.retiro_grueso)
+    base_sugerida = ArqueoService.obtener_base_sugerida(fecha_seleccionada)
 
     if request.method == 'POST':
-        # Doble verificación en el backend para evitar duplicados por concurrencia
+        # Validación inicial
         if ArqueoCaja.query.filter_by(fecha_arqueo=fecha_seleccionada).first():
             flash('Ya existe un arqueo cerrado para esta fecha. No se puede duplicar.', 'warning')
             return redirect(url_for('arqueo_bp.reporte', fecha_inicio=fecha_str, fecha_fin=fecha_str))
 
-        base_inicial = float(request.form.get('base_inicial', 0.0))
-        retiro_grueso = float(request.form.get('retiro_grueso', 0.0))
+        base_inicial = Decimal(request.form.get('base_inicial', '0.0'))
+        retiro_grueso = Decimal(request.form.get('retiro_grueso', '0.0'))
         
         # Recalcular gastos automáticos por seguridad en el backend
-        gastos_recalculados = Expense.query.filter(
-            db.func.date(Expense.fecha_gasto) == fecha_seleccionada,
-            Expense.metodo_pago == 'efectivo'
-        ).all()
-        gastos_del_dia = float(sum(g.monto for g in gastos_recalculados))
+        gastos_del_dia = ArqueoService.calcular_gastos_automaticos(fecha_seleccionada)
         
         observaciones_gastos = request.form.get('observaciones_gastos', '').strip()
 
@@ -125,9 +80,14 @@ def nuevo():
             db.session.commit()
             flash('Arqueo de caja guardado exitosamente.', 'success')
             return redirect(url_for('arqueo_bp.reporte', fecha_inicio=fecha_str, fecha_fin=fecha_str))
+        except IntegrityError as e:
+            db.session.rollback()
+            current_app.logger.warning(f"Intento duplicado de crear arqueo detectado y prevenido: {e}")
+            flash('Ya existe un arqueo para esta fecha (Condición de Carrera Prevenida).', 'warning')
         except Exception as e:
             db.session.rollback()
-            flash('Ocurrió un error al guardar el arqueo de caja.', 'danger')
+            current_app.logger.error("Error crítico al guardar arqueo de caja.", exc_info=True)
+            flash('Ocurrió un error interno al guardar el arqueo de caja.', 'danger')
 
     return render_template(
         'arqueo/form.html',
@@ -225,7 +185,8 @@ def reabrir(arqueo_id):
         flash('Arqueo reabierto exitosamente. El cierre ha sido anulado y se puede volver a calcular.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash('Ocurrió un error al intentar reabrir el arqueo.', 'danger')
+        current_app.logger.error(f"Error crítico al intentar reabrir el arqueo {arqueo_id}.", exc_info=True)
+        flash('Ocurrió un error interno al intentar reabrir el arqueo.', 'danger')
     
     # Redirigir al reporte manteniendo los parámetros de fecha si es posible, 
     # o a la ruta base de reporte

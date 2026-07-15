@@ -236,7 +236,7 @@ class ArqueoCaja(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     vendedor_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    fecha_arqueo = db.Column(db.Date, nullable=False)
+    fecha_arqueo = db.Column(db.Date, nullable=False, unique=True)
     base_inicial = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     gastos_del_dia = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
     retiro_grueso = db.Column(db.Numeric(10, 2), nullable=False, default=0.0)
