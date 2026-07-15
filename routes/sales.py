@@ -1,11 +1,12 @@
 from flask import Blueprint, request, jsonify, flash, redirect, render_template, abort, url_for
 from flask_login import login_required, current_user
-from models import db, Product, ProductVariant, Sale, SaleDetail, SalePayment, SaleClient, Expense, obtener_hora_bogota
+from models import db, Product, ProductVariant, Sale, SaleDetail, SalePayment, SaleClient, Expense, obtener_hora_bogota, Notification, User
 from decorators import admin_required
 from decimal import Decimal
 from datetime import datetime, timedelta
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
+from routes.push import send_push_notification
 
 sales_bp = Blueprint('sales_bp', __name__)
 
@@ -196,7 +197,46 @@ def procesar_venta():
             )
             db.session.add(cliente)
 
+        # Crear notificación de venta
+        nombres_productos = []
+        for detalle in nueva_venta.detalles:
+            if detalle.product_id:
+                prod = Product.query.get(detalle.product_id)
+                prod_nombre = prod.nombre if prod else "Producto"
+                if detalle.variant_id:
+                    var = ProductVariant.query.get(detalle.variant_id)
+                    var_nombre = var.nombre_variante if var else "Variante"
+                    nombres_productos.append(f"{prod_nombre} ({var_nombre}) x{detalle.cantidad_vendida}")
+                else:
+                    nombres_productos.append(f"{prod_nombre} x{detalle.cantidad_vendida}")
+            elif getattr(detalle, 'nombre_manual', None):
+                nombres_productos.append(f"{detalle.nombre_manual} x{detalle.cantidad_vendida}")
+                
+        productos_str = ", ".join(nombres_productos)
+        titulo_notif = f"Nueva Venta: ${monto_total:,.0f}"
+        mensaje_notif = f"Vendedor: {current_user.nombre}\nProductos: {productos_str}\nTotal: ${monto_total:,.0f}"
+
+        notificacion = Notification(
+            tipo='venta',
+            titulo=titulo_notif,
+            mensaje=mensaje_notif
+        )
+        db.session.add(notificacion)
         db.session.commit()
+        
+        # Enviar Push Notifications a administradores
+        try:
+            admins = User.query.filter_by(rol='admin').all()
+            for admin in admins:
+                send_push_notification(
+                    user_id=admin.id,
+                    title=titulo_notif,
+                    body=mensaje_notif,
+                    url="/notifications"
+                )
+        except Exception as e:
+            # Fallo silencioso del push para no arruinar la venta
+            print(f"Error enviando push: {e}")
         
         return jsonify({
             'success': True, 

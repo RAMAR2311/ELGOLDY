@@ -280,4 +280,15 @@ class PushSubscription(db.Model):
     def __init__(self, **kwargs):
         super(PushSubscription, self).__init__(**kwargs)
 
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    tipo = db.Column(db.String(50), nullable=False) # ej. 'venta'
+    titulo = db.Column(db.String(100), nullable=False)
+    mensaje = db.Column(db.Text, nullable=False)
+    leida = db.Column(db.Boolean, default=False)
+    fecha_creacion = db.Column(db.DateTime, default=obtener_hora_bogota)
 
+    def __init__(self, **kwargs):
+        super(Notification, self).__init__(**kwargs)

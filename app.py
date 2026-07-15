@@ -56,8 +56,8 @@ def create_app():
     from routes.auth import auth_bp
     from routes.arqueo import arqueo_bp
     from routes.gastos import gastos_bp
-    
     from routes.push import push_bp
+    from routes.notifications import notifications_bp
     
     app.register_blueprint(sales_bp, url_prefix='/sales')
     app.register_blueprint(inventory_bp, url_prefix='/inventory')
@@ -65,6 +65,7 @@ def create_app():
     app.register_blueprint(arqueo_bp, url_prefix='/arqueo')
     app.register_blueprint(gastos_bp, url_prefix='/gastos')
     app.register_blueprint(push_bp, url_prefix='/push')
+    app.register_blueprint(notifications_bp, url_prefix='/notifications')
     
     csrf.exempt(push_bp)
     

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h2 class="fw-bold mb-0">
+            <i class="fa-solid fa-bell text-brand-orange me-2"></i>Historial de Notificaciones
+        </h2>
+        <p class="text-muted mb-0">Revisa todas las alertas y notificaciones del sistema</p>
+    </div>
+</div>
+
+<div class="card card-custom shadow-sm border-0">
+    <div class="card-body p-4">
+        {% if notificaciones %}
+            <div class="list-group list-group-flush">
+                {% for notif in notificaciones %}
+                    <div class="list-group-item list-group-item-action py-3 border-bottom">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <h5 class="mb-1 fw-bold text-brand-black">
+                                {% if notif.tipo == 'venta' %}
+                                    <i class="fa-solid fa-cart-arrow-down text-success me-2"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-circle-info text-primary me-2"></i>
+                                {% endif %}
+                                {{ notif.titulo }}
+                            </h5>
+                            <small class="text-muted"><i class="fa-regular fa-clock me-1"></i>{{ notif.fecha_creacion.strftime('%Y-%m-%d %H:%M') }}</small>
+                        </div>
+                        <p class="mb-1 text-secondary mt-2" style="white-space: pre-wrap;">{{ notif.mensaje }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fa-regular fa-bell-slash text-muted mb-3" style="font-size: 3rem;"></i>
+                <h4 class="text-muted">No hay notificaciones</h4>
+                <p class="text-secondary">Aquí aparecerán las notificaciones de ventas y alertas del sistema.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
