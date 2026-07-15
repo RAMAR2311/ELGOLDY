@@ -265,3 +265,19 @@ class Expense(db.Model):
     def __init__(self, **kwargs):
         super(Expense, self).__init__(**kwargs)
 
+class PushSubscription(db.Model):
+    __tablename__ = 'push_subscriptions'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    endpoint = db.Column(db.String(500), nullable=False, unique=True)
+    p256dh = db.Column(db.String(255), nullable=False)
+    auth = db.Column(db.String(255), nullable=False)
+    fecha_creacion = db.Column(db.DateTime, default=obtener_hora_bogota)
+
+    usuario = db.relationship('User', backref='suscripciones_push', lazy=True)
+
+    def __init__(self, **kwargs):
+        super(PushSubscription, self).__init__(**kwargs)
+
+

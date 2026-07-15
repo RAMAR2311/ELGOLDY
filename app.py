@@ -40,7 +40,7 @@ def create_app():
     # Inicializar Extensiones
     db.init_app(app)
     Migrate(app, db)
-    CSRFProtect(app)
+    csrf = CSRFProtect(app)
     
     login_manager = LoginManager()
     login_manager.login_view = 'auth_bp.login'
@@ -57,11 +57,16 @@ def create_app():
     from routes.arqueo import arqueo_bp
     from routes.gastos import gastos_bp
     
+    from routes.push import push_bp
+    
     app.register_blueprint(sales_bp, url_prefix='/sales')
     app.register_blueprint(inventory_bp, url_prefix='/inventory')
     app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(arqueo_bp, url_prefix='/arqueo')
     app.register_blueprint(gastos_bp, url_prefix='/gastos')
+    app.register_blueprint(push_bp, url_prefix='/push')
+    
+    csrf.exempt(push_bp)
     
     # Registro de Blueprint Admin
     from routes.admin import admin_bp
@@ -93,6 +98,14 @@ def create_app():
 
         # Por defecto, Vendedores van directo a Cajas
         return redirect(url_for('sales_bp.procesar_venta'))
+
+    @app.route('/sw.js')
+    def sw():
+        """Sirve el Service Worker desde la raíz para que el scope cubra toda la app."""
+        response = app.send_static_file('sw.js')
+        response.headers['Content-Type'] = 'application/javascript'
+        response.headers['Cache-Control'] = 'no-cache'
+        return response
 
     return app
 
