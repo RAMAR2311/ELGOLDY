@@ -213,8 +213,12 @@ def procesar_venta():
                 nombres_productos.append(f"{detalle.nombre_manual} x{detalle.cantidad_vendida}")
                 
         productos_str = ", ".join(nombres_productos)
+        
+        metodos_usados = [p.get('metodo_pago', 'efectivo').capitalize() for p in pagos_data]
+        metodo_str = metodos_usados[0] if len(metodos_usados) == 1 else "Pago Mixto (" + ", ".join(set(metodos_usados)) + ")"
+
         titulo_notif = f"Nueva Venta: ${monto_total:,.0f}"
-        mensaje_notif = f"Vendedor: {current_user.nombre}\nProductos: {productos_str}\nTotal: ${monto_total:,.0f}"
+        mensaje_notif = f"Vendedor: {current_user.nombre}\nMétodo: {metodo_str}\nProductos: {productos_str}\nTotal: ${monto_total:,.0f}"
 
         notificacion = Notification(
             tipo='venta',
