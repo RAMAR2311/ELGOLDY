@@ -113,28 +113,27 @@ def create_app():
 # Definición global para Gunicorn
 app = create_app()
 
+with app.app_context():
+    from models import db, User
+    from werkzeug.security import generate_password_hash
+    
+    # Aseguramos que las tablas existan sin romper migraciones
+    db.create_all()
+    
+    # Crear la carpeta de imágenes si no existe
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    
+    # Verificamos e instanciamos al Administrador si no existe
+    if not User.query.filter_by(email='admin@elgoldy.com').first():
+        master_admin = User(
+            nombre='Administrador Principal',
+            email='admin@elgoldy.com',
+            password_hash=generate_password_hash('Admin123'),
+            rol='admin' # Rol dictaminado por los requerimientos
+        )
+        db.session.add(master_admin)
+        db.session.commit()
+        print("🚀 [INFO] Usuario maestro 'admin@elgoldy.com' fue creado automáticamente.")
+
 if __name__ == '__main__':
-    # ---------------- LÓGICA DE INICIALIZACIÓN ----------------
-    with app.app_context():
-        from models import db, User
-        from werkzeug.security import generate_password_hash
-        
-        # Aseguramos que las tablas existan sin romper migraciones
-        db.create_all()
-        
-        # Crear la carpeta de imágenes si no existe
-        os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-        
-        # Verificamos e instanciamos al Administrador si no existe
-        if not User.query.filter_by(email='admin@elgoldy.com').first():
-            master_admin = User(
-                nombre='Administrador Principal',
-                email='admin@elgoldy.com',
-                password_hash=generate_password_hash('Admin123'),
-                rol='admin' # Rol dictaminado por los requerimientos
-            )
-            db.session.add(master_admin)
-            db.session.commit()
-            print("🚀 [INFO] Usuario maestro 'admin@elgoldy.com' fue creado automáticamente.")
-            
     app.run(debug=True)
