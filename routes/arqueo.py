@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
-from models import db, Sale, SalePayment, ArqueoCaja, Expense, Product
+from models import db, Sale, SalePayment, ArqueoCaja, Expense, Product, User, Notification
 from decorators import admin_required
+from routes.push import send_push_notification
 from datetime import datetime, date
 from decimal import Decimal
 import re
@@ -78,6 +79,28 @@ def nuevo():
         try:
             db.session.add(nuevo_arqueo)
             db.session.commit()
+
+            # Notificación de cierre de caja a administradores
+            admins = User.query.filter_by(rol='admin').all()
+            mensaje = f'Se generó el cierre de caja del día "{fecha_str}" revisalo desde tu app.'
+            titulo = 'Cierre de Caja'
+            
+            nueva_notificacion = Notification(
+                tipo='arqueo',
+                titulo=titulo,
+                mensaje=mensaje
+            )
+            db.session.add(nueva_notificacion)
+            db.session.commit()
+            
+            for admin_user in admins:
+                send_push_notification(
+                    user_id=admin_user.id,
+                    title=titulo,
+                    body=mensaje,
+                    url='/arqueo/reporte'
+                )
+
             flash('Arqueo de caja guardado exitosamente.', 'success')
             return redirect(url_for('arqueo_bp.reporte', fecha_inicio=fecha_str, fecha_fin=fecha_str))
         except IntegrityError as e:
